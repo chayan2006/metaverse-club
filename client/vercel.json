@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/api/:path*",
-            "destination": "https://YOUR_BACKEND_URL_HERE.onrender.com/api/:path*"
+            "destination": "https://metaverse-club.onrender.com/api/:path*"
         }
     ]
 }
