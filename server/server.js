@@ -3,8 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import pg from 'pg';
+const { Pool } = pg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,24 +17,26 @@ app.use(cors());
 app.use(express.json());
 
 // Database Setup
-let db;
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// Initialize Database Table
 (async () => {
     try {
-        db = await open({
-            filename: path.join(__dirname, '../database/database.sqlite'),
-            driver: sqlite3.Database
-        });
-
-        await db.exec(`
+        const client = await pool.connect();
+        await client.query(`
             CREATE TABLE IF NOT EXISTS members (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 name TEXT,
                 email TEXT,
                 department TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        console.log('Connected to SQLite database.');
+        console.log('Connected to PostgreSQL database and verified table.');
+        client.release();
     } catch (error) {
         console.error('Failed to connect to database:', error);
     }
@@ -46,9 +48,8 @@ app.use(express.static(path.join(__dirname, '../client/dist')));
 // API Routes
 app.get('/api/members', async (req, res) => {
     try {
-        if (!db) throw new Error('Database not initialized');
-        const members = await db.all('SELECT * FROM members');
-        res.json({ status: 'success', data: members });
+        const { rows } = await pool.query('SELECT * FROM members');
+        res.json({ status: 'success', data: rows });
     } catch (error) {
         console.error('Error fetching members:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
@@ -63,11 +64,9 @@ app.post('/api/join', async (req, res) => {
     }
 
     try {
-        if (!db) throw new Error('Database not initialized');
-
         // Insert into database
-        await db.run(
-            'INSERT INTO members (name, email, department) VALUES (?, ?, ?)',
+        await pool.query(
+            'INSERT INTO members (name, email, department) VALUES ($1, $2, $3)',
             [name, email, department]
         );
 
