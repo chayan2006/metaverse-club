@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Metaverse Club</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              orbitron: ['Orbitron', 'sans-serif'],
+              rajdhani: ['Rajdhani', 'sans-serif'],
+            },
+            colors: {
+              cyber: {
+                black: '#020205',
+                dark: '#0a0a12',
+                panel: '#11111f',
+                neonBlue: '#00f3ff',
+                neonPurple: '#bc13fe',
+                neonPink: '#ff0055',
+              }
+            },
+            animation: {
+              'float': 'float 6s ease-in-out infinite',
+              'glow': 'glow 2s ease-in-out infinite alternate',
+              'scanline': 'scanline 8s linear infinite',
+              'border-pulse': 'border-pulse 2s ease-in-out infinite',
+              'spin-slow': 'spin 15s linear infinite',
+              'spin-reverse-slow': 'spin-reverse 20s linear infinite',
+              'rotate-3d': 'rotate3d 20s linear infinite',
+              'rotate-3d-reverse': 'rotate3d 25s linear infinite reverse',
+            },
+            keyframes: {
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-20px)' },
+              },
+              glow: {
+                '0%': { boxShadow: '0 0 5px #00f3ff, 0 0 10px #00f3ff' },
+                '100%': { boxShadow: '0 0 20px #bc13fe, 0 0 30px #bc13fe' },
+              },
+              scanline: {
+                '0%': { transform: 'translateY(-100%)' },
+                '100%': { transform: 'translateY(100%)' },
+              },
+              'border-pulse': {
+                '0%, 100%': { borderColor: '#00f3ff', boxShadow: '0 0 10px rgba(0, 243, 255, 0.2)' },
+                '50%': { borderColor: '#bc13fe', boxShadow: '0 0 10px rgba(188, 19, 254, 0.2)' },
+              },
+              'spin-reverse': {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(-360deg)' },
+              },
+              rotate3d: {
+                '0%': { transform: 'rotateX(0deg) rotateY(0deg)' },
+                '100%': { transform: 'rotateX(360deg) rotateY(360deg)' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #020205;
+        color: #e0e0e0;
+        overflow-x: hidden;
+      }
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0a0a12;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #1f2937;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #374151;
+      }
+      .neon-text {
+        text-shadow: 0 0 5px rgba(0, 243, 255, 0.5), 0 0 10px rgba(0, 243, 255, 0.3);
+      }
+      .neon-border {
+        box-shadow: 0 0 5px rgba(188, 19, 254, 0.2), inset 0 0 5px rgba(188, 19, 254, 0.1);
+      }
+      
+      /* 3D Scene Utilities */
+      .perspective-1000 {
+        perspective: 1000px;
+      }
+      .preserve-3d {
+        transform-style: preserve-3d;
+      }
+      
+      /* Cube Construction */
+      .cube {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        transform-style: preserve-3d;
+      }
+      .cube-face {
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        border: 2px solid rgba(0, 243, 255, 0.3);
+        background: rgba(0, 243, 255, 0.05);
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2rem;
+        color: rgba(255, 255, 255, 0.5);
+        backface-visibility: visible;
+      }
+      .cube-face:nth-child(1) { transform: rotateY(0deg) translateZ(100px); }
+      .cube-face:nth-child(2) { transform: rotateY(90deg) translateZ(100px); }
+      .cube-face:nth-child(3) { transform: rotateY(180deg) translateZ(100px); }
+      .cube-face:nth-child(4) { transform: rotateY(-90deg) translateZ(100px); }
+      .cube-face:nth-child(5) { transform: rotateX(90deg) translateZ(100px); }
+      .cube-face:nth-child(6) { transform: rotateX(-90deg) translateZ(100px); }
+
+      /* Inner Cube (Tesseract Core) */
+      .cube-inner {
+        position: absolute;
+        top: 50px; left: 50px;
+        width: 100px;
+        height: 100px;
+        transform-style: preserve-3d;
+      }
+      .cube-face-inner {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background: rgba(188, 19, 254, 0.1);
+        border: 1px solid rgba(188, 19, 254, 0.8);
+        box-shadow: inset 0 0 15px rgba(188, 19, 254, 0.3);
+      }
+      .cube-face-inner:nth-child(1) { transform: rotateY(0deg) translateZ(50px); }
+      .cube-face-inner:nth-child(2) { transform: rotateY(90deg) translateZ(50px); }
+      .cube-face-inner:nth-child(3) { transform: rotateY(180deg) translateZ(50px); }
+      .cube-face-inner:nth-child(4) { transform: rotateY(-90deg) translateZ(50px); }
+      .cube-face-inner:nth-child(5) { transform: rotateX(90deg) translateZ(50px); }
+      .cube-face-inner:nth-child(6) { transform: rotateX(-90deg) translateZ(50px); }
+
+      /* Pyramid Construction */
+      .pyramid {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        transform-style: preserve-3d;
+      }
+      .pyramid-face {
+        position: absolute;
+        width: 0;
+        height: 0;
+        border-left: 100px solid transparent;
+        border-right: 100px solid transparent;
+        border-bottom: 200px solid rgba(188, 19, 254, 0.1);
+        transform-origin: 50% 100%;
+      }
+      .pyramid-face::after {
+        content: '';
+        position: absolute;
+        left: -100px;
+        top: 0px;
+        width: 0;
+        height: 0;
+        border-left: 100px solid transparent;
+        border-right: 100px solid transparent;
+        border-bottom: 200px solid transparent;
+        border-bottom-color: rgba(188, 19, 254, 0.5);
+        transform: scale(0.95) translateZ(-1px);
+        pointer-events: none;
+      }
+      .pyramid-face:nth-child(1) { transform: translateZ(100px) rotateX(30deg); }
+      .pyramid-face:nth-child(2) { transform: rotateY(90deg) translateZ(100px) rotateX(30deg); }
+      .pyramid-face:nth-child(3) { transform: rotateY(180deg) translateZ(100px) rotateX(30deg); }
+      .pyramid-face:nth-child(4) { transform: rotateY(-90deg) translateZ(100px) rotateX(30deg); }
+
+      /* Inverted Pyramid (Crystal Bottom) */
+      .pyramid-inverted {
+        position: absolute;
+        top: 200px; /* Aligns with bottom of top pyramid base roughly */
+        left: 0;
+        width: 200px;
+        height: 200px;
+        transform-style: preserve-3d;
+        transform: rotateX(180deg) translateY(-200px); /* Flip it */
+      }
+      /* Reuse pyramid faces logic via transform but manual is safer for alignment */
+
+      /* Let's define manual inverted faces for clean crystal look */
+      .crystal-face-lower {
+        position: absolute;
+        width: 0;
+        height: 0;
+        border-left: 100px solid transparent;
+        border-right: 100px solid transparent;
+        border-top: 200px solid rgba(188, 19, 254, 0.1);
+        transform-origin: 50% 0%;
+      }
+      .crystal-face-lower::after {
+        content: '';
+        position: absolute;
+        left: -100px;
+        top: -200px;
+        width: 0;
+        height: 0;
+        border-left: 100px solid transparent;
+        border-right: 100px solid transparent;
+        border-top: 200px solid transparent;
+        border-top-color: rgba(188, 19, 254, 0.5);
+        transform: scale(0.95) translateZ(-1px);
+        pointer-events: none;
+      }
+      /* Adjust angles for 200px height pyramid */
+      /* Base is 200x200. Height 200. */
+      .crystal-face-lower:nth-child(1) { transform: translateZ(100px) rotateX(-30deg); }
+      .crystal-face-lower:nth-child(2) { transform: rotateY(90deg) translateZ(100px) rotateX(-30deg); }
+      .crystal-face-lower:nth-child(3) { transform: rotateY(180deg) translateZ(100px) rotateX(-30deg); }
+      .crystal-face-lower:nth-child(4) { transform: rotateY(-90deg) translateZ(100px) rotateX(-30deg); }
+      
+      /* 3D Ring */
+      .ring-3d {
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid;
+        transform-style: preserve-3d;
+      }
+
+      /* Scanlines */
+      .scanlines {
+        background: linear-gradient(
+          to bottom,
+          rgba(255,255,255,0),
+          rgba(255,255,255,0) 50%,
+          rgba(0,0,0,0.2) 50%,
+          rgba(0,0,0,0.2)
+        );
+        background-size: 100% 4px;
+        pointer-events: none;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "three": "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+    "three/": "https://esm.sh/three@^0.182.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
