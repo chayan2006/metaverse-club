@@ -3,8 +3,8 @@ export interface Event {
   name: string;
   date: string;
   description: string;
-  type: 'Hackathon' | 'Workshop' | 'Meetup';
-  status: 'Upcoming' | 'Ongoing' | 'Completed';
+  type: 'Hackathon' | 'Workshop' | 'Meetup' | 'CTF';
+  status: 'Upcoming' | 'Ongoing' | 'Completed' | 'Coming soon';
   location: string;
 }
 

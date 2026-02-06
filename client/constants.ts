@@ -3,12 +3,12 @@ import { Event, TeamMember, Announcement } from './types';
 export const CLUB_EVENTS: Event[] = [
   {
     id: '1',
-    name: 'MetaHacks 2024',
-    date: 'Oct 25-27, 2024',
-    description: '48-hour intense hackathon focused on building decentralized applications and VR experiences.',
-    type: 'Hackathon',
-    status: 'Upcoming',
-    location: 'Virtual Hall A'
+    name: 'Cyber Siege (Developer vs Attacker)',
+    date: '26 Feburary, 2026',
+    description: 'A CTF competition where developers try to secure their code from attackers.',
+    type: 'CTF',
+    status: 'Coming soon',
+    location: 'Yet to announce'
   },
   {
     id: '2',
@@ -25,7 +25,7 @@ export const CLUB_EVENTS: Event[] = [
     date: 'Oct 10, 2024',
     description: 'Panel discussion with industry experts on smart contract security.',
     type: 'Meetup',
-    status: 'Ongoing',
+    status: 'Completed',
     location: 'Metaverse Plaza'
   },
   {
@@ -34,18 +34,10 @@ export const CLUB_EVENTS: Event[] = [
     date: 'Nov 05, 2024',
     description: 'Exploring how generative AI is reshaping NPC behavior and world generation.',
     type: 'Workshop',
-    status: 'Upcoming',
+    status: 'Completed',
     location: 'Virtual Hall B'
   },
-  {
-    id: '5',
-    name: 'AI in Gaming',
-    date: 'Nov 05, 2024',
-    description: 'Exploring how generative AI is reshaping NPC behavior and world generation.',
-    type: 'Workshop',
-    status: 'Upcoming',
-    location: 'Virtual Hall B'
-  }
+
 ];
 
 export const TEAM_MEMBERS: TeamMember[] = [

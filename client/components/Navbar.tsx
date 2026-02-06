@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState, FC } from 'react';
 import { Menu, X, Hexagon } from 'lucide-react';
 
 interface NavbarProps {
   activeSection: string;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeSection }) => {
+export const Navbar: FC<NavbarProps> = ({ activeSection }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
@@ -40,15 +40,22 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection }) => {
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 ${
-                    activeSection === item.id
-                      ? 'text-cyber-neonBlue bg-cyber-panel shadow-[0_0_10px_rgba(0,243,255,0.2)]'
-                      : 'text-gray-300 hover:text-white hover:bg-white/5'
-                  }`}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 ${activeSection === item.id
+                    ? 'text-cyber-neonBlue bg-cyber-panel shadow-[0_0_10px_rgba(0,243,255,0.2)]'
+                    : 'text-gray-300 hover:text-white hover:bg-white/5'
+                    }`}
                 >
                   {item.label}
                 </button>
               ))}
+              <a
+                href="/admin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-4 px-3 py-2 rounded-md text-sm font-bold text-cyber-neonPink border border-cyber-neonPink/50 hover:bg-cyber-neonPink hover:text-black transition-all shadow-[0_0_5px_rgba(255,0,85,0.3)] flex items-center gap-2"
+              >
+                ADMIN
+              </a>
             </div>
           </div>
 
@@ -70,11 +77,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection }) => {
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium ${
-                activeSection === item.id
-                  ? 'text-cyber-neonBlue bg-cyber-panel'
-                  : 'text-gray-300 hover:text-white hover:bg-gray-700'
-              }`}
+              className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium ${activeSection === item.id
+                ? 'text-cyber-neonBlue bg-cyber-panel'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                }`}
             >
               {item.label}
             </button>

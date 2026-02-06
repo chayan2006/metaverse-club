@@ -12,7 +12,12 @@ import { Tesseract, FloatingCrystal, GyroScope } from './components/Shapes3D';
 import { EventsBackground3D } from './components/EventsBackground3D';
 import { Zap } from 'lucide-react';
 
-const App: React.FC = () => {
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AdminLogin } from './components/AdminLogin';
+import { AdminDashboard } from './components/AdminDashboard';
+
+// Extracting the main landing page content to a sub-component for cleaner routing
+const LandingPage: React.FC = () => {
   const [activeSection, setActiveSection] = useState('home');
 
   // Simple scroll spy to update active section
@@ -38,10 +43,10 @@ const App: React.FC = () => {
 
   return (
     <div className="font-rajdhani min-h-screen bg-cyber-black text-gray-200 selection:bg-cyber-neonBlue selection:text-black overflow-x-hidden">
-      
+
       {/* GLOBAL 3D BACKGROUND (CANVAS) */}
       <Background3D />
-      
+
       {/* Background Decor Elements (Static Blobs) - kept for extra color depth */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-10">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyber-neonBlue blur-[120px] rounded-full animate-pulse" />
@@ -66,11 +71,11 @@ const App: React.FC = () => {
         </section>
 
         <section id="events" className="py-20 px-4 md:px-8 relative overflow-hidden">
-           {/* Interactive 3D Background for Events */}
-           <EventsBackground3D />
-           
-           {/* 3D Decor for Events: GyroScope */}
-           <div className="absolute bottom-10 left-[-50px] md:left-20 z-0 scale-75 md:scale-100">
+          {/* Interactive 3D Background for Events */}
+          <EventsBackground3D />
+
+          {/* 3D Decor for Events: GyroScope */}
+          <div className="absolute bottom-10 left-[-50px] md:left-20 z-0 scale-75 md:scale-100">
             <GyroScope />
           </div>
           <div className="relative z-10">
@@ -79,18 +84,18 @@ const App: React.FC = () => {
         </section>
 
         <section id="updates" className="py-20 px-4 md:px-8 bg-cyber-dark/30 border-y border-cyber-panel relative">
-           {/* 3D Decor for Updates: Subtle floating crystal in distance? */}
-           <div className="absolute top-0 right-0 z-0 opacity-10 translate-x-1/2">
-             <Tesseract />
-           </div>
+          {/* 3D Decor for Updates: Subtle floating crystal in distance? */}
+          <div className="absolute top-0 right-0 z-0 opacity-10 translate-x-1/2">
+            <Tesseract />
+          </div>
           <div className="relative z-10">
             <Updates />
           </div>
         </section>
 
         <section id="team" className="py-20 px-4 md:px-8 relative overflow-hidden">
-           {/* 3D Decor for Team: Floating Crystal */}
-           <div className="absolute top-1/2 right-10 transform -translate-y-1/2 z-0 scale-75 md:scale-100">
+          {/* 3D Decor for Team: Floating Crystal */}
+          <div className="absolute top-1/2 right-10 transform -translate-y-1/2 z-0 scale-75 md:scale-100">
             <FloatingCrystal />
           </div>
           <div className="relative z-10">
@@ -99,10 +104,10 @@ const App: React.FC = () => {
         </section>
 
         <section id="join" className="py-20 px-4 md:px-8 bg-gradient-to-b from-cyber-black to-cyber-dark border-t border-cyber-panel relative overflow-hidden">
-           {/* 3D Decor for Join: Another GyroScope on the other side */}
-           <div className="absolute bottom-0 left-[-100px] z-0 opacity-20 scale-150">
-             <GyroScope />
-           </div>
+          {/* 3D Decor for Join: Another GyroScope on the other side */}
+          <div className="absolute bottom-0 left-[-100px] z-0 opacity-20 scale-150">
+            <GyroScope />
+          </div>
           <div className="relative z-10">
             <JoinForm />
           </div>
@@ -110,9 +115,9 @@ const App: React.FC = () => {
       </main>
 
       <Footer />
-      
+
       {/* Floating Action Button for quick join on mobile */}
-      <a 
+      <a
         href="#join"
         className="fixed bottom-6 right-6 md:hidden z-50 bg-cyber-neonPink text-white p-4 rounded-full shadow-[0_0_15px_rgba(255,0,85,0.5)] active:scale-95 transition-transform"
         aria-label="Join Now"
@@ -120,6 +125,17 @@ const App: React.FC = () => {
         <Zap size={24} fill="currentColor" />
       </a>
     </div>
+  );
+}
+
+const App: React.FC = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/admin" element={<AdminLogin />} />
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 };
 
