@@ -8,7 +8,7 @@ interface RegistrationModalProps {
     eventId: string;
 }
 
-type TeamType = 'Solo' | 'Duo' | 'Squad';
+type TeamType = 'Solo' | 'Duo' | 'Trio' | 'Squad';
 type Role = 'Developer' | 'Attacker' | 'Both';
 
 interface Member {
@@ -31,7 +31,7 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
 
     // Initialize members based on team type
     useEffect(() => {
-        const memberCount = teamType === 'Solo' ? 1 : teamType === 'Duo' ? 2 : 4;
+        const memberCount = teamType === 'Solo' ? 1 : teamType === 'Duo' ? 2 : teamType === 'Trio' ? 3 : 4;
         setMembers(Array(memberCount).fill({
             name: '',
             email: '',
@@ -48,7 +48,9 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
     const calculateTotal = () => {
         const BASE_PRICE = 170;
         let perPersonPrice = BASE_PRICE;
-        if (globalRole === 'Both') perPersonPrice *= 2;
+        if (globalRole === 'Both') {
+            perPersonPrice = 200;
+        }
         return perPersonPrice * members.length;
     };
 
@@ -147,10 +149,11 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
                     <form onSubmit={handleSubmit} className="space-y-6">
 
                         {/* Team Type Selection */}
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-4 gap-2 md:gap-4">
                             {[
                                 { type: 'Solo', icon: User, price: '₹170' },
                                 { type: 'Duo', icon: Users, price: '₹340*' },
+                                { type: 'Trio', icon: Users, price: '₹510*' },
                                 { type: 'Squad', icon: Shield, price: '₹680*' },
                             ].map(({ type, icon: Icon, price }) => (
                                 <button
@@ -187,7 +190,7 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
                                 >
                                     <Icon className="mb-2" />
                                     <span className="font-bold">{label}</span>
-                                    {role === 'Both' && <span className="text-xs opacity-70 mt-1">+₹170/person</span>}
+                                    {role === 'Both' && <span className="text-xs opacity-70 mt-1">₹200/person</span>}
                                 </button>
                             ))}
                         </div>
@@ -282,7 +285,7 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
 
                         {/* Default Pricing Note */}
                         <div className="text-xs text-gray-500 italic">
-                            * Base price is ₹170/person. Selecting "Both" roles adds ₹170 per person.
+                            * Base price is ₹170/person. Selecting "Both" roles changes price to ₹200 per person.
                         </div>
 
                     </form>

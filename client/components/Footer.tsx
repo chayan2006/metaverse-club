@@ -16,9 +16,9 @@ export const Footer: React.FC = () => {
             <MessageSquare size={20} />
           </a>
         </div>
-        
+
         <p className="text-gray-500 text-sm mb-2">
-          &copy; {new Date().getFullYear()} Metaverse Club. All Systems Operational.
+          &copy; {new Date().getFullYear()} Metaverse. All Systems Operational.
         </p>
         <p className="text-gray-700 text-xs">
           Built with React & Tailwind CSS.

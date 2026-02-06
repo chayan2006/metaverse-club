@@ -12,12 +12,12 @@ export const CLUB_EVENTS: Event[] = [
   },
   {
     id: '2',
-    name: 'Intro to Three.js',
-    date: 'Sep 15, 2024',
+    name: '<Code-A-Thone>',
+    date: '26 Sep 2025',
     description: 'Learn the basics of 3D web graphics. No prior experience required.',
-    type: 'Workshop',
+    type: '24 hours Hackathon',
     status: 'Completed',
-    location: 'Discord Stage'
+    location: 'venue 14 501 at 6pm'
   },
   {
     id: '3',

@@ -3,6 +3,10 @@
         {
             "source": "/api/:path*",
             "destination": "https://metaverse-club.onrender.com/api/:path*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ]
 }

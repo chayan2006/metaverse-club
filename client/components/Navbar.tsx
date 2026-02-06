@@ -31,7 +31,7 @@ export const Navbar: FC<NavbarProps> = ({ activeSection }) => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleNavClick('home')}>
             <Hexagon className="text-cyber-neonBlue animate-pulse" size={28} />
-            <span className="font-orbitron font-bold text-xl tracking-wider text-white">META<span className="text-cyber-neonBlue">CLUB</span></span>
+            <span className="font-orbitron font-bold text-xl tracking-wider text-white">META<span className="text-cyber-neonBlue">VERSE</span></span>
           </div>
 
           <div className="hidden md:block">
