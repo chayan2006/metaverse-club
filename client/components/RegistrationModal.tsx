@@ -1,4 +1,5 @@
 import { useState, useEffect, FC, FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { X, User, Users, Shield, Code, Zap } from 'lucide-react';
 
 interface RegistrationModalProps {
@@ -8,7 +9,7 @@ interface RegistrationModalProps {
     eventId: string;
 }
 
-type TeamType = 'Solo' | 'Duo' | 'Trio' | 'Squad';
+type TeamType = 'Duo' | 'Trio' | 'Squad';
 type Role = 'Developer' | 'Attacker' | 'Both';
 
 interface Member {
@@ -19,7 +20,7 @@ interface Member {
 }
 
 export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose, eventName, eventId }) => {
-    const [teamType, setTeamType] = useState<TeamType>('Solo');
+    const [teamType, setTeamType] = useState<TeamType>('Duo');
     const [globalRole, setGlobalRole] = useState<Role>('Developer');
     const [teamName, setTeamName] = useState('');
     const [members, setMembers] = useState<Member[]>([]);
@@ -31,7 +32,7 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
 
     // Initialize members based on team type
     useEffect(() => {
-        const memberCount = teamType === 'Solo' ? 1 : teamType === 'Duo' ? 2 : teamType === 'Trio' ? 3 : 4;
+        const memberCount = teamType === 'Duo' ? 2 : teamType === 'Trio' ? 3 : 4;
         setMembers(Array(memberCount).fill({
             name: '',
             email: '',
@@ -67,7 +68,7 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
 
         try {
             const formData = new FormData();
-            formData.append('teamName', teamType !== 'Solo' ? teamName : '');
+            formData.append('teamName', teamName);
             formData.append('type', teamType);
             formData.append('members', JSON.stringify(members.map(m => ({ ...m, role: globalRole }))));
             formData.append('eventId', eventId);
@@ -97,27 +98,71 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
     if (!isOpen) return null;
 
     if (success) {
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                <div className="bg-cyber-panel border border-cyber-neonGreen p-8 rounded-xl max-w-md w-full text-center shadow-[0_0_30px_rgba(0,255,0,0.2)]">
-                    <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Zap className="text-green-400 w-8 h-8" />
+        return createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <div className="bg-gray-900 border-2 border-cyber-neonGreen p-0 rounded-xl max-w-md w-full text-center shadow-[0_0_50px_rgba(0,255,0,0.3)] relative overflow-hidden group">
+                    {/* Ticket Header */}
+                    <div className="bg-gray-800 p-6 border-b-2 border-dashed border-gray-700 relative">
+                        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-black rounded-full border-r border-gray-700"></div>
+                        <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-black rounded-full border-l border-gray-700"></div>
+
+                        <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                            <Zap className="text-green-400 w-8 h-8" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-1 font-orbitron uppercase tracking-wider">Access Granted</h3>
+                        <p className="text-cyber-neonGreen text-sm font-semibold">TICKET ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">Registration Confirmed!</h3>
-                    <p className="text-gray-400 mb-6">Your spot for {eventName} has been secured.</p>
-                    <button
-                        onClick={() => { setSuccess(false); onClose(); }}
-                        className="px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-bold transition-colors"
-                    >
-                        Close
-                    </button>
+
+                    {/* Ticket Body */}
+                    <div className="p-8 space-y-4 bg-gray-900/95 relative">
+                        <div className="space-y-1">
+                            <p className="text-gray-500 text-xs uppercase tracking-widest">Event</p>
+                            <p className="text-white font-bold text-lg">{eventName}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                            <div>
+                                <p className="text-gray-500 text-xs uppercase tracking-widest">Team</p>
+                                <p className="text-cyber-neonBlue font-bold">{teamName || 'Solo Agent'}</p>
+                            </div>
+                            <div>
+                                <p className="text-gray-500 text-xs uppercase tracking-widest">Type</p>
+                                <p className="text-cyber-neonPurple font-bold">{teamType}</p>
+                            </div>
+                        </div>
+
+                        <div className="pt-6 border-t border-gray-800">
+                            <p className="text-gray-400 text-sm mb-4">Join the official communication channel for updates and coordination.</p>
+                            <a
+                                href="https://chat.whatsapp.com/KI8AC9hmtYBDKyKBYSJMYG?mode=gi_t"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block w-full py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-lg shadow-lg transform transition-all hover:-translate-y-1 hover:shadow-[#25D366]/40 flex items-center justify-center gap-2"
+                            >
+                                <span className="text-xl">📱</span>
+                                Join WhatsApp Group
+                            </a>
+                        </div>
+                    </div>
+
+                    {/* Ticket Footer */}
+                    <div className="bg-gray-950 p-4 border-t-2 border-dashed border-gray-800 flex justify-between items-center">
+                        <span className="text-xs text-gray-600 font-mono">AUTHORIZED_BY_SYSTEM</span>
+                        <button
+                            onClick={() => { setSuccess(false); onClose(); }}
+                            className="text-gray-400 hover:text-white text-sm hover:underline"
+                        >
+                            Close Ticket
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </div>,
+            document.body
         );
     }
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
             <div className="bg-gray-900 border border-cyber-neonBlue/30 w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden relative my-8">
                 {/* Header */}
                 <div className="bg-gray-800 p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 z-10">
@@ -149,9 +194,8 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
                     <form onSubmit={handleSubmit} className="space-y-6">
 
                         {/* Team Type Selection */}
-                        <div className="grid grid-cols-4 gap-2 md:gap-4">
+                        <div className="grid grid-cols-3 gap-2 md:gap-4">
                             {[
-                                { type: 'Solo', icon: User, price: '₹170' },
                                 { type: 'Duo', icon: Users, price: '₹340*' },
                                 { type: 'Trio', icon: Users, price: '₹510*' },
                                 { type: 'Squad', icon: Shield, price: '₹680*' },
@@ -195,19 +239,17 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
                             ))}
                         </div>
 
-                        {teamType !== 'Solo' && (
-                            <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">Team Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={teamName}
-                                    onChange={(e) => setTeamName(e.target.value)}
-                                    className="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white focus:border-cyber-neonBlue focus:ring-1 focus:ring-cyber-neonBlue outline-none"
-                                    placeholder="Enter your team name"
-                                />
-                            </div>
-                        )}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1">Team Name</label>
+                            <input
+                                type="text"
+                                required
+                                value={teamName}
+                                onChange={(e) => setTeamName(e.target.value)}
+                                className="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white focus:border-cyber-neonBlue focus:ring-1 focus:ring-cyber-neonBlue outline-none"
+                                placeholder="Enter your team name"
+                            />
+                        </div>
 
                         {/* Member Details */}
                         <div className="space-y-6">
@@ -216,7 +258,7 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
                                 <div key={idx} className="bg-gray-800/50 p-4 rounded border border-gray-700/50">
                                     <div className="flex justify-between items-center mb-3">
                                         <span className="text-sm font-bold text-gray-300">Member {idx + 1}</span>
-                                        {teamType !== 'Solo' && idx === 0 && <span className="text-xs bg-cyber-neonPurple/20 text-cyber-neonPurple px-2 py-0.5 rounded">Team Lead</span>}
+                                        {idx === 0 && <span className="text-xs bg-cyber-neonPurple/20 text-cyber-neonPurple px-2 py-0.5 rounded">Team Lead</span>}
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -255,6 +297,22 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
 
                             <div className="bg-gray-800/50 p-4 rounded border border-gray-700/50">
                                 <p className="text-sm text-gray-400 mb-2">Please transfer <span className="text-cyber-neonGreen font-bold">₹{calculateTotal()}</span> to confirm registration.</p>
+
+                                {/* Dynamic QR Code */}
+                                <div className="mb-4 flex justify-center">
+                                    <div className="bg-white p-2 rounded-lg">
+                                        <img
+                                            src={`/qrcodes/${calculateTotal()}.jpeg`}
+                                            alt={`Pay ₹${calculateTotal()}`}
+                                            className="w-48 h-48 object-contain"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                (e.target as HTMLImageElement).parentElement!.innerText = 'QR Code not available for this amount';
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="mb-4">
                                     <label className="block text-sm font-medium text-gray-400 mb-1">Transaction ID / UPI Ref</label>
                                     <input
@@ -306,6 +364,7 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

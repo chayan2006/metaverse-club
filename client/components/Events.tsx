@@ -68,7 +68,8 @@ export const Events: React.FC = () => {
         {filteredEvents.map((event) => (
           <div
             key={event.id}
-            className="group bg-cyber-panel border border-white/5 transition-all duration-300 rounded-lg overflow-hidden relative flex flex-col h-full hover:-translate-y-2 hover:animate-border-pulse"
+            className={`group bg-cyber-panel border border-white/5 transition-all duration-300 rounded-lg overflow-hidden relative flex flex-col h-full hover:-translate-y-2 hover:animate-border-pulse ${(event.status === 'Upcoming' || event.status === 'Ongoing') ? 'animate-size-pulse-custom' : ''
+              }`}
           >
             {/* Top accent bar */}
             <div className="h-1 w-full bg-gradient-to-r from-cyber-neonBlue to-cyber-neonPurple transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>

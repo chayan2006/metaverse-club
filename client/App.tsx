@@ -11,6 +11,7 @@ import { Background3D } from './components/Background3D';
 import { Tesseract, FloatingCrystal, GyroScope } from './components/Shapes3D';
 import { EventsBackground3D } from './components/EventsBackground3D';
 import { Zap } from 'lucide-react';
+import { HelpButton } from './components/HelpButton';
 
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AdminLogin } from './components/AdminLogin';
@@ -54,6 +55,7 @@ const LandingPage: React.FC = () => {
       </div>
 
       <Navbar activeSection={activeSection} />
+      <HelpButton />
 
       <main className="relative z-10 flex flex-col gap-0">
         <section id="home" className="min-h-screen flex items-center justify-center pt-16 relative">
