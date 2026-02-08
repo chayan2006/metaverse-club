@@ -79,10 +79,23 @@ const pool = new Pool({
                 email TEXT NOT NULL,
                 phone TEXT,
                 role TEXT NOT NULL, 
+                college_or_work TEXT,
+                address TEXT,
+                ticket_id TEXT,
                 payment_status TEXT DEFAULT 'Pending',
                 amount_paid REAL
             );
         `);
+
+        // Migration to add columns if they don't exist (for existing tables)
+        try {
+            await pool.query(`ALTER TABLE participants ADD COLUMN IF NOT EXISTS college_or_work TEXT;`);
+            await pool.query(`ALTER TABLE participants ADD COLUMN IF NOT EXISTS address TEXT;`);
+            await pool.query(`ALTER TABLE participants ADD COLUMN IF NOT EXISTS ticket_id TEXT;`);
+        } catch (e) {
+            console.log('Migration note: Columns might already exist or error in alter:', e.message);
+        }
+
         console.log('Database tables verified/created with PostgreSQL schema.');
     } catch (error) {
         console.error('Failed to connect to database:', error);
@@ -121,6 +134,7 @@ const validateRegistration = (type, members) => {
 
     for (const m of members) {
         if (!m.name || !m.email || !m.role) return 'Missing member details';
+        if (!m.college_or_work || !m.address) return 'Missing address/college details'; // Enforce new fields
         if (!['Developer', 'Attacker', 'Both'].includes(m.role)) return 'Invalid role';
     }
     return null;
@@ -160,24 +174,31 @@ app.post('/api/register', upload.single('screenshot'), async (req, res) => {
             [teamName || `${members[0].name}'s Team`, type, eventId, expectedPrice, transactionId, screenshotPath]
         );
         const teamId = teamResult.rows[0].id;
+        const ticketIds = [];
 
         for (const member of members) {
             let memberCost = 170;
             if (member.role === 'Both') memberCost *= 2;
 
+            // Generate unique ticket ID: MVS-{Year}-{Random4}-{Random4}
+            const uniqueSuffix = Math.floor(1000 + Math.random() * 9000);
+            const ticketId = `MVS-2025-${teamId}-${uniqueSuffix}`;
+            ticketIds.push(ticketId);
+
             await client.query(
-                'INSERT INTO participants (team_id, name, email, phone, role, payment_status, amount_paid) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-                [teamId, member.name, member.email, member.phone, member.role, 'Paid', memberCost]
+                'INSERT INTO participants (team_id, name, email, phone, role, college_or_work, address, ticket_id, payment_status, amount_paid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+                [teamId, member.name, member.email, member.phone, member.role, member.college_or_work, member.address, ticketId, 'Paid', memberCost]
             );
         }
 
         await client.query('COMMIT');
 
-        console.log(`Registered team: ${teamName} (${type}) for Event ${eventId}. Total: ₹${expectedPrice}. Tx: ${transactionId}`);
+        console.log(`Registered team: ${teamName} (${type}). Total: ₹${expectedPrice}. Tickets: ${ticketIds.join(', ')}`);
         res.json({
             status: 'success',
             message: 'Registration successful',
             teamId,
+            ticketIds,
             totalAmount: expectedPrice
         });
 
@@ -246,7 +267,7 @@ app.get('/api/admin/registrations', authenticateAdmin, async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 t.id as team_id, t.name as team_name, t.type as team_type, t.event_id, t.total_amount, t.created_at,
-                p.name as participant_name, p.email, p.phone, p.role, p.payment_status, p.amount_paid
+                p.name as participant_name, p.email, p.phone, p.role, p.college_or_work, p.address, p.ticket_id, p.payment_status, p.amount_paid
             FROM teams t
             JOIN participants p ON t.id = p.team_id
             ORDER BY t.created_at DESC
@@ -264,7 +285,7 @@ app.get('/api/admin/export', authenticateAdmin, async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 t.id as team_id, t.name as team_name, t.type as team_type, t.event_id, t.total_amount, t.created_at, t.transaction_id, t.screenshot_path,
-                p.name as participant_name, p.email, p.phone, p.role, p.payment_status, p.amount_paid
+                p.name as participant_name, p.email, p.phone, p.role, p.college_or_work, p.address, p.ticket_id, p.payment_status, p.amount_paid
             FROM teams t
             JOIN participants p ON t.id = p.team_id
             ORDER BY t.created_at DESC

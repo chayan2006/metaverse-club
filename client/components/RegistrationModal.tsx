@@ -1,6 +1,7 @@
-import { useState, useEffect, FC, FormEvent } from 'react';
+import { useState, useEffect, FC, FormEvent, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, User, Users, Shield, Code, Zap } from 'lucide-react';
+import { X, User, Users, Shield, Code, Zap, ArrowRight, ArrowLeft, CheckCircle, AlertTriangle, Download, Ticket } from 'lucide-react';
+import { generateTicketPDF } from '../utils/TicketGenerator';
 
 interface RegistrationModalProps {
     isOpen: boolean;
@@ -16,34 +17,87 @@ interface Member {
     name: string;
     email: string;
     phone: string;
-    // role is now global
+    college_or_work: string;
+    address: string;
 }
 
 export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose, eventName, eventId }) => {
+    const [step, setStep] = useState<1 | 2>(1);
     const [teamType, setTeamType] = useState<TeamType>('Duo');
     const [globalRole, setGlobalRole] = useState<Role>('Developer');
     const [teamName, setTeamName] = useState('');
     const [members, setMembers] = useState<Member[]>([]);
+
+    // Payment State
+    const [transactionId, setTransactionId] = useState('');
+    const [screenshot, setScreenshot] = useState<File | null>(null);
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [transactionId, setTransactionId] = useState('');
-    const [screenshot, setScreenshot] = useState<File | null>(null);
+    const [generatedTicketIds, setGeneratedTicketIds] = useState<string[]>([]);
+
+    // Validation State
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
     // Initialize members based on team type
     useEffect(() => {
         const memberCount = teamType === 'Duo' ? 2 : teamType === 'Trio' ? 3 : 4;
-        setMembers(Array(memberCount).fill({
-            name: '',
-            email: '',
-            phone: '',
-        }));
+        setMembers(prev => {
+            const newMembers = Array(memberCount).fill(null).map((_, i) => prev[i] || {
+                name: '',
+                email: '',
+                phone: '',
+                college_or_work: '',
+                address: ''
+            });
+            return newMembers;
+        });
     }, [teamType]);
+
+    // Validation Logic
+    const validateStep1 = () => {
+        const errors: Record<string, string> = {};
+        let isValid = true;
+
+        if (!teamName.trim()) {
+            errors.teamName = 'Team Name is required';
+            isValid = false;
+        }
+
+        members.forEach((member, idx) => {
+            if (!member.name.trim()) { errors[`member_${idx}_name`] = 'Required'; isValid = false; }
+            if (!member.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email)) { errors[`member_${idx}_email`] = 'Invalid Email'; isValid = false; }
+            if (!member.phone.trim() || !/^\d{10}$/.test(member.phone)) { errors[`member_${idx}_phone`] = 'Invalid Phone (10 digits)'; isValid = false; }
+            if (!member.college_or_work.trim()) { errors[`member_${idx}_college`] = 'Required'; isValid = false; }
+            if (!member.address.trim()) { errors[`member_${idx}_address`] = 'Required'; isValid = false; }
+        });
+
+        setValidationErrors(errors);
+        return isValid;
+    };
 
     const updateMember = (index: number, field: keyof Member, value: string) => {
         const newMembers = [...members];
         newMembers[index] = { ...newMembers[index], [field]: value };
         setMembers(newMembers);
+
+        if (validationErrors[`member_${index}_${field}`]) {
+            setValidationErrors(prev => {
+                const newErrs = { ...prev };
+                delete newErrs[`member_${index}_${field}`];
+                return newErrs;
+            });
+        }
+    };
+
+    const handleNext = () => {
+        if (validateStep1()) {
+            setStep(2);
+            setError(null);
+        } else {
+            setError('Please fix the errors in the form before proceeding.');
+        }
     };
 
     const calculateTotal = () => {
@@ -77,13 +131,12 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
 
             const response = await fetch('/api/register', {
                 method: 'POST',
-                // Content-Type header not needed for FormData, browser sets it with boundary
                 body: formData
             });
-            // ... rest matches
 
             const data = await response.json();
             if (data.status === 'success') {
+                setGeneratedTicketIds(data.ticketIds || []);
                 setSuccess(true);
             } else {
                 setError(data.message || 'Registration failed');
@@ -95,65 +148,64 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
         }
     };
 
+    const handleDownloadTicket = (index: number) => {
+        const member = members[index];
+        const ticketId = generatedTicketIds[index] || 'PENDING';
+
+        generateTicketPDF({
+            ticketId,
+            eventName,
+            attendeeName: member.name,
+            teamName,
+            role: globalRole,
+            date: new Date().toLocaleDateString(),
+            venue: 'Metaverse Club Arena'
+        });
+    };
+
     if (!isOpen) return null;
 
     if (success) {
         return createPortal(
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                <div className="bg-gray-900 border-2 border-cyber-neonGreen p-0 rounded-xl max-w-md w-full text-center shadow-[0_0_50px_rgba(0,255,0,0.3)] relative overflow-hidden group">
-                    {/* Ticket Header */}
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                <div className="bg-gray-900 border-2 border-cyber-neonGreen p-0 rounded-xl max-w-lg w-full text-center shadow-[0_0_50px_rgba(0,255,0,0.3)] relative overflow-hidden group">
                     <div className="bg-gray-800 p-6 border-b-2 border-dashed border-gray-700 relative">
-                        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-black rounded-full border-r border-gray-700"></div>
-                        <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-black rounded-full border-l border-gray-700"></div>
-
                         <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                            <Zap className="text-green-400 w-8 h-8" />
+                            <Ticket className="text-green-400 w-8 h-8" />
                         </div>
-                        <h3 className="text-2xl font-bold text-white mb-1 font-orbitron uppercase tracking-wider">Access Granted</h3>
-                        <p className="text-cyber-neonGreen text-sm font-semibold">TICKET ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
+                        <h3 className="text-2xl font-bold text-white mb-1 font-orbitron uppercase tracking-wider">Registration Confirmed</h3>
+                        <p className="text-cyber-neonGreen text-sm font-semibold">WELCOME TO THE CLUB</p>
                     </div>
 
-                    {/* Ticket Body */}
-                    <div className="p-8 space-y-4 bg-gray-900/95 relative">
-                        <div className="space-y-1">
-                            <p className="text-gray-500 text-xs uppercase tracking-widest">Event</p>
-                            <p className="text-white font-bold text-lg">{eventName}</p>
+                    <div className="p-8 space-y-4 bg-gray-900/95 relative max-h-[50vh] overflow-y-auto">
+                        <p className="text-gray-300 mb-4">Your registration for <span className="text-white font-bold">{eventName}</span> is complete. Download your tickets below.</p>
+
+                        <div className="space-y-3">
+                            {members.map((member, idx) => (
+                                <div key={idx} className="flex items-center justify-between bg-gray-800 p-3 rounded border border-gray-700">
+                                    <div className="text-left">
+                                        <p className="text-white font-bold text-sm">{member.name}</p>
+                                        <p className="text-xs text-cyber-neonBlue font-mono">{generatedTicketIds[idx] || 'Processing...'}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => handleDownloadTicket(idx)}
+                                        className="bg-cyber-neonBlue/10 hover:bg-cyber-neonBlue/20 text-cyber-neonBlue p-2 rounded transition-colors"
+                                        title="Download Ticket"
+                                    >
+                                        <Download size={18} />
+                                    </button>
+                                </div>
+                            ))}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 pt-2">
-                            <div>
-                                <p className="text-gray-500 text-xs uppercase tracking-widest">Team</p>
-                                <p className="text-cyber-neonBlue font-bold">{teamName || 'Solo Agent'}</p>
-                            </div>
-                            <div>
-                                <p className="text-gray-500 text-xs uppercase tracking-widest">Type</p>
-                                <p className="text-cyber-neonPurple font-bold">{teamType}</p>
-                            </div>
-                        </div>
-
-                        <div className="pt-6 border-t border-gray-800">
-                            <p className="text-gray-400 text-sm mb-4">Join the official communication channel for updates and coordination.</p>
-                            <a
-                                href="https://chat.whatsapp.com/KI8AC9hmtYBDKyKBYSJMYG?mode=gi_t"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block w-full py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-lg shadow-lg transform transition-all hover:-translate-y-1 hover:shadow-[#25D366]/40 flex items-center justify-center gap-2"
-                            >
-                                <span className="text-xl">📱</span>
-                                Join WhatsApp Group
-                            </a>
+                        <div className="pt-6 border-t border-gray-800 mt-4">
+                            <p className="text-gray-400 text-sm mb-4">Join the official communication channel for updates.</p>
+                            <a href="https://chat.whatsapp.com/KI8AC9hmtYBDKyKBYSJMYG?mode=gi_t" target="_blank" rel="noopener noreferrer" className="block w-full py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-lg shadow-lg flex items-center justify-center gap-2"><span className="text-xl">📱</span> Join WhatsApp Group</a>
                         </div>
                     </div>
-
-                    {/* Ticket Footer */}
                     <div className="bg-gray-950 p-4 border-t-2 border-dashed border-gray-800 flex justify-between items-center">
                         <span className="text-xs text-gray-600 font-mono">AUTHORIZED_BY_SYSTEM</span>
-                        <button
-                            onClick={() => { setSuccess(false); onClose(); }}
-                            className="text-gray-400 hover:text-white text-sm hover:underline"
-                        >
-                            Close Ticket
-                        </button>
+                        <button onClick={() => { setSuccess(false); onClose(); }} className="text-gray-400 hover:text-white text-sm hover:underline">Close</button>
                     </div>
                 </div>
             </div>,
@@ -163,205 +215,247 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
 
     return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-            <div className="bg-gray-900 border border-cyber-neonBlue/30 w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden relative my-8">
+            <div className="bg-gray-900 border border-cyber-neonBlue/30 w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden relative my-8 flex flex-col max-h-[90vh]">
+
                 {/* Header */}
-                <div className="bg-gray-800 p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 z-10">
+                <div className="bg-gray-800 p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 z-10 shrink-0">
                     <div>
                         <h2 className="text-2xl font-bold text-white font-orbitron">Event Registration</h2>
-                        <p className="text-cyber-neonBlue text-sm">{eventName}</p>
+                        <div className="flex items-center gap-2 text-sm mt-1">
+                            <span className={`flex items-center gap-1 ${step === 1 ? 'text-cyber-neonBlue font-bold' : 'text-green-500'}`}>
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs border ${step === 1 ? 'border-cyber-neonBlue' : 'border-green-500 bg-green-500/20'}`}>1</div> Details
+                            </span>
+                            <span className="text-gray-600">/</span>
+                            <span className={`flex items-center gap-1 ${step === 2 ? 'text-cyber-neonBlue font-bold' : 'text-gray-500'}`}>
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs border ${step === 2 ? 'border-cyber-neonBlue' : 'border-gray-600'}`}>2</div> Payment
+                            </span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-2 text-sm font-bold text-gray-300 hover:text-white bg-gray-700/50 hover:bg-gray-700 border border-gray-600 rounded transition-all"
-                        >
-                            Cancel
-                        </button>
-                        <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-                            <X size={24} />
-                        </button>
-                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors"><X size={24} /></button>
                 </div>
 
-                {/* Content */}
-                <div className="p-6 max-h-[50vh] overflow-y-auto">
+                {/* Content - Scrollable */}
+                <div className="p-6 overflow-y-auto grow custom-scrollbar">
                     {error && (
-                        <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-3 rounded mb-4 text-sm">
-                            {error}
+                        <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-3 rounded mb-4 text-sm flex items-center gap-2 animate-pulse">
+                            <AlertTriangle size={16} /> {error}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    {step === 1 ? (
+                        <div className="space-y-6 animate-fade-in-left">
+                            {/* Step 1: Details */}
 
-                        {/* Team Type Selection */}
-                        <div className="grid grid-cols-3 gap-2 md:gap-4">
-                            {[
-                                { type: 'Duo', icon: Users, price: '₹340*' },
-                                { type: 'Trio', icon: Users, price: '₹510*' },
-                                { type: 'Squad', icon: Shield, price: '₹680*' },
-                            ].map(({ type, icon: Icon, price }) => (
-                                <button
-                                    key={type}
-                                    type="button"
-                                    onClick={() => setTeamType(type as TeamType)}
-                                    className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${teamType === type
-                                        ? 'bg-cyber-neonBlue/10 border-cyber-neonBlue text-white shadow-[0_0_15px_rgba(0,240,255,0.2)]'
-                                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-750'
-                                        }`}
-                                >
-                                    <Icon className="mb-2" />
-                                    <span className="font-bold">{type}</span>
-                                    <span className="text-xs opacity-70 mt-1">{price}</span>
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Team Role Selection */}
-                        <div className="grid grid-cols-3 gap-4">
-                            {[
-                                { role: 'Developer', icon: Code, label: 'Developer' },
-                                { role: 'Attacker', icon: Shield, label: 'Attacker' },
-                                { role: 'Both', icon: Zap, label: 'Both' },
-                            ].map(({ role, icon: Icon, label }) => (
-                                <button
-                                    key={role}
-                                    type="button"
-                                    onClick={() => setGlobalRole(role as Role)}
-                                    className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${globalRole === role
-                                        ? 'bg-cyber-neonPurple/10 border-cyber-neonPurple text-white shadow-[0_0_15px_rgba(180,0,255,0.2)]'
-                                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-750'
-                                        }`}
-                                >
-                                    <Icon className="mb-2" />
-                                    <span className="font-bold">{label}</span>
-                                    {role === 'Both' && <span className="text-xs opacity-70 mt-1">₹200/person</span>}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1">Team Name</label>
-                            <input
-                                type="text"
-                                required
-                                value={teamName}
-                                onChange={(e) => setTeamName(e.target.value)}
-                                className="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white focus:border-cyber-neonBlue focus:ring-1 focus:ring-cyber-neonBlue outline-none"
-                                placeholder="Enter your team name"
-                            />
-                        </div>
-
-                        {/* Member Details */}
-                        <div className="space-y-6">
-                            <h3 className="text-lg font-bold text-white border-b border-gray-700 pb-2">Participant Details</h3>
-                            {members.map((member, idx) => (
-                                <div key={idx} className="bg-gray-800/50 p-4 rounded border border-gray-700/50">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="text-sm font-bold text-gray-300">Member {idx + 1}</span>
-                                        {idx === 0 && <span className="text-xs bg-cyber-neonPurple/20 text-cyber-neonPurple px-2 py-0.5 rounded">Team Lead</span>}
+                            {/* Team Config */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-400 mb-2">Squad Size</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {(['Duo', 'Trio', 'Squad'] as const).map(type => (
+                                            <button
+                                                key={type}
+                                                onClick={() => setTeamType(type)}
+                                                className={`py-2 px-1 rounded border text-sm font-bold transition-all ${teamType === type ? 'bg-cyber-neonBlue/20 border-cyber-neonBlue text-white' : 'bg-gray-800 border-gray-700 text-gray-400'}`}
+                                            >
+                                                {type}
+                                            </button>
+                                        ))}
                                     </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <input
-                                            type="text"
-                                            placeholder="Name"
-                                            required
-                                            value={member.name}
-                                            onChange={(e) => updateMember(idx, 'name', e.target.value)}
-                                            className="bg-gray-950 border border-gray-700 rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none"
-                                        />
-                                        <input
-                                            type="email"
-                                            placeholder="Email"
-                                            required
-                                            value={member.email}
-                                            onChange={(e) => updateMember(idx, 'email', e.target.value)}
-                                            className="bg-gray-950 border border-gray-700 rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none"
-                                        />
-                                        <input
-                                            type="tel"
-                                            placeholder="Phone"
-                                            required
-                                            value={member.phone}
-                                            onChange={(e) => updateMember(idx, 'phone', e.target.value)}
-                                            className="bg-gray-950 border border-gray-700 rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none"
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Payment Details */}
-                        <div className="space-y-4 border-t border-gray-700 pt-4">
-                            <h3 className="text-lg font-bold text-white">Payment Details</h3>
-
-                            <div className="bg-gray-800/50 p-4 rounded border border-gray-700/50">
-                                <p className="text-sm text-gray-400 mb-2">Please transfer <span className="text-cyber-neonGreen font-bold">₹{calculateTotal()}</span> to confirm registration.</p>
-
-                                {/* Dynamic QR Code */}
-                                <div className="mb-4 flex justify-center">
-                                    <div className="bg-white p-2 rounded-lg">
-                                        <img
-                                            src={`/qrcodes/${calculateTotal()}.jpeg`}
-                                            alt={`Pay ₹${calculateTotal()}`}
-                                            className="w-48 h-48 object-contain"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = 'none';
-                                                (e.target as HTMLImageElement).parentElement!.innerText = 'QR Code not available for this amount';
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">Transaction ID / UPI Ref</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={transactionId}
-                                        onChange={(e) => setTransactionId(e.target.value)}
-                                        className="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white focus:border-cyber-neonBlue outline-none"
-                                        placeholder="Enter transaction ID"
-                                    />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">Payment Screenshot</label>
-                                    <input
-                                        type="file"
-                                        required
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                            if (e.target.files && e.target.files[0]) {
-                                                setScreenshot(e.target.files[0]);
-                                            }
+                                    <label className="block text-sm font-medium text-gray-400 mb-2">Role Type</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {(['Developer', 'Attacker', 'Both'] as const).map(role => (
+                                            <button
+                                                key={role}
+                                                onClick={() => setGlobalRole(role)}
+                                                className={`py-2 px-1 rounded border text-sm font-bold transition-all ${globalRole === role ? 'bg-cyber-neonPurple/20 border-cyber-neonPurple text-white' : 'bg-gray-800 border-gray-700 text-gray-400'}`}
+                                            >
+                                                {role}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Team Name <span className="text-red-500">*</span></label>
+                                <input
+                                    type="text"
+                                    value={teamName}
+                                    onChange={(e) => {
+                                        setTeamName(e.target.value);
+                                        if (validationErrors.teamName) setValidationErrors(prev => { const n = { ...prev }; delete n.teamName; return n; });
+                                    }}
+                                    className={`w-full bg-gray-950 border ${validationErrors.teamName ? 'border-red-500' : 'border-gray-700'} rounded p-3 text-white focus:border-cyber-neonBlue outline-none transition-colors`}
+                                    placeholder="Enter your team name"
+                                />
+                                {validationErrors.teamName && <p className="text-red-500 text-xs mt-1">{validationErrors.teamName}</p>}
+                            </div>
+
+                            {/* Members */}
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-bold text-white border-b border-gray-700 pb-2">Participant Details</h3>
+                                {members.map((member, idx) => (
+                                    <div key={idx} className="bg-gray-800/30 p-4 rounded border border-gray-700/50 hover:border-gray-600 transition-colors">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <span className="text-sm font-bold text-gray-300">Member {idx + 1} {idx === 0 && '(Lead)'}</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {/* Name */}
+                                            <div>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Full Name *"
+                                                    value={member.name}
+                                                    onChange={(e) => updateMember(idx, 'name', e.target.value)}
+                                                    className={`w-full bg-gray-950 border ${validationErrors[`member_${idx}_name`] ? 'border-red-500' : 'border-gray-700'} rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none`}
+                                                />
+                                                {validationErrors[`member_${idx}_name`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_name`]}</span>}
+                                            </div>
+                                            {/* Email */}
+                                            <div>
+                                                <input
+                                                    type="email"
+                                                    placeholder="Email Address *"
+                                                    value={member.email}
+                                                    onChange={(e) => updateMember(idx, 'email', e.target.value)}
+                                                    className={`w-full bg-gray-950 border ${validationErrors[`member_${idx}_email`] ? 'border-red-500' : 'border-gray-700'} rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none`}
+                                                />
+                                                {validationErrors[`member_${idx}_email`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_email`]}</span>}
+                                            </div>
+                                            {/* Phone */}
+                                            <div>
+                                                <input
+                                                    type="tel"
+                                                    placeholder="Phone (10 digits) *"
+                                                    maxLength={10}
+                                                    value={member.phone}
+                                                    onChange={(e) => updateMember(idx, 'phone', e.target.value.replace(/\D/g, ''))}
+                                                    className={`w-full bg-gray-950 border ${validationErrors[`member_${idx}_phone`] ? 'border-red-500' : 'border-gray-700'} rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none`}
+                                                />
+                                                {validationErrors[`member_${idx}_phone`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_phone`]}</span>}
+                                            </div>
+                                            {/* College / Work */}
+                                            <div>
+                                                <input
+                                                    type="text"
+                                                    placeholder="College / Company *"
+                                                    value={member.college_or_work}
+                                                    onChange={(e) => updateMember(idx, 'college_or_work', e.target.value)}
+                                                    className={`w-full bg-gray-950 border ${validationErrors[`member_${idx}_college`] ? 'border-red-500' : 'border-gray-700'} rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none`}
+                                                />
+                                                {validationErrors[`member_${idx}_college`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_college`]}</span>}
+                                            </div>
+                                            {/* Address */}
+                                            <div className="md:col-span-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="City / Address *"
+                                                    value={member.address}
+                                                    onChange={(e) => updateMember(idx, 'address', e.target.value)}
+                                                    className={`w-full bg-gray-950 border ${validationErrors[`member_${idx}_address`] ? 'border-red-500' : 'border-gray-700'} rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none`}
+                                                />
+                                                {validationErrors[`member_${idx}_address`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_address`]}</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-6 animate-fade-in-right">
+                            {/* Step 2: Payment */}
+                            <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-700 flex flex-col items-center text-center">
+                                <h3 className="text-xl font-bold text-white mb-2">Secure Payment Gateway</h3>
+                                <p className="text-gray-400 text-sm mb-6">Scan the QR code to complete your registration for <span className="text-cyber-neonBlue font-bold">{teamName}</span>.</p>
+
+                                <div className="bg-white p-4 rounded-xl shadow-lg mb-6 transform hover:scale-105 transition-transform duration-300">
+                                    <img
+                                        src={`/qrcodes/${calculateTotal()}.jpeg`}
+                                        alt={`Pay ₹${calculateTotal()}`}
+                                        className="w-56 h-56 object-contain"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                            (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-56 h-56 flex items-center justify-center text-black font-bold">QR Code Not Found</div>';
                                         }}
-                                        className="w-full file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-cyber-neonBlue/10 file:text-cyber-neonBlue hover:file:bg-cyber-neonBlue/20 text-gray-300"
                                     />
+                                    <p className="text-black font-bold mt-2 text-lg">Amount: ₹{calculateTotal()}</p>
+                                </div>
+
+                                <div className="w-full max-w-md space-y-4">
+                                    <div>
+                                        <label className="block text-left text-sm font-bold text-gray-300 mb-1">Transaction ID / UTR *</label>
+                                        <input
+                                            type="text"
+                                            value={transactionId}
+                                            onChange={(e) => setTransactionId(e.target.value)}
+                                            className="w-full bg-gray-950 border border-gray-600 rounded p-3 text-white focus:border-green-500 outline-none"
+                                            placeholder="Enter UPI Ref No. / Transaction ID"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-left text-sm font-bold text-gray-300 mb-1">Payment Screenshot *</label>
+                                        <div className="bg-gray-950 border-2 border-dashed border-gray-600 rounded-lg p-6 hover:border-cyber-neonBlue transition-colors cursor-pointer relative group">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => e.target.files && setScreenshot(e.target.files[0])}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                required
+                                            />
+                                            <div className="flex flex-col items-center gap-2 pointer-events-none group-hover:scale-105 transition-transform">
+                                                {screenshot ? (
+                                                    <span className="text-green-400 font-bold flex items-center gap-2"><CheckCircle size={16} /> {screenshot.name}</span>
+                                                ) : (
+                                                    <>
+                                                        <span className="text-cyber-neonBlue">Click or Drop Screenshot</span>
+                                                        <span className="text-xs text-gray-500">JPG, PNG, PDF (Max 5MB)</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
-                        {/* Default Pricing Note */}
-                        <div className="text-xs text-gray-500 italic">
-                            * Base price is ₹170/person. Selecting "Both" roles changes price to ₹200 per person.
-                        </div>
-
-                    </form>
+                    )}
                 </div>
 
-                {/* Footer */}
-                <div className="bg-gray-800 p-6 border-t border-gray-700 flex justify-between items-center sticky bottom-0 z-10">
-                    <div>
-                        <p className="text-gray-400 text-sm">Total Amount</p>
-                        <p className="text-3xl font-bold text-cyber-neonGreen">₹{calculateTotal()}</p>
-                    </div>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={loading}
-                        className="bg-gradient-to-r from-cyber-neonBlue to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white font-bold py-3 px-8 rounded shadow-lg transform active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loading ? 'Processing...' : 'Proceed to Pay'}
-                    </button>
+                {/* Footer Controls */}
+                <div className="bg-gray-800 p-6 border-t border-gray-700 flex justify-between items-center shrink-0">
+                    {step === 1 ? (
+                        <div className="flex flex-col">
+                            <span className="text-xs text-gray-400 uppercase tracking-widest">Total Payable</span>
+                            <span className="text-2xl font-bold text-cyber-neonGreen">₹{calculateTotal()}</span>
+                        </div>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => setStep(1)}
+                            className="flex items-center gap-2 text-gray-400 hover:text-white"
+                        >
+                            <ArrowLeft size={18} /> Back to Details
+                        </button>
+                    )}
+
+                    {step === 1 ? (
+                        <button
+                            onClick={handleNext}
+                            className="bg-cyber-neonBlue hover:bg-cyan-400 text-black font-bold py-3 px-8 rounded shadow-[0_0_15px_rgba(0,240,255,0.4)] transform active:scale-95 transition-all flex items-center gap-2"
+                        >
+                            Next Step <ArrowRight size={18} />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleSubmit}
+                            disabled={loading}
+                            className={`bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded shadow-[0_0_15px_rgba(0,255,100,0.4)] transform active:scale-95 transition-all flex items-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            {loading ? 'Verifying...' : 'Complete Payment'} <CheckCircle size={18} />
+                        </button>
+                    )}
                 </div>
             </div>
         </div>,

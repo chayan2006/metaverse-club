@@ -17,6 +17,9 @@ interface Registration {
     amount_paid: number;
     transaction_id?: string;
     screenshot_path?: string;
+    college_or_work?: string;
+    address?: string;
+    ticket_id?: string;
 }
 
 export const AdminDashboard: FC = () => {
@@ -60,7 +63,8 @@ export const AdminDashboard: FC = () => {
     const filteredData = registrations.filter(r =>
         r.team_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.participant_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        r.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.ticket_id?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -74,7 +78,7 @@ export const AdminDashboard: FC = () => {
                             ADMIN<span className="text-gray-500 mx-2">/</span>DASHBOARD
                         </h1>
                         <span className="bg-gray-800 text-xs px-2 py-1 rounded text-gray-400 border border-gray-700">
-                            v1.0
+                            v1.1
                         </span>
                     </div>
                     <div className="flex items-center gap-4">
@@ -107,7 +111,7 @@ export const AdminDashboard: FC = () => {
                     <div className="w-full md:w-96 relative">
                         <input
                             type="text"
-                            placeholder="Search by team, name, email..."
+                            placeholder="Search by ID, team, name, email..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:border-cyber-neonBlue outline-none"
@@ -130,16 +134,14 @@ export const AdminDashboard: FC = () => {
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead>
                                 <tr className="bg-gray-800 text-gray-400 border-b border-gray-700 uppercase tracking-wider text-xs">
-                                    <th className="px-6 py-4 font-bold">Date</th>
-                                    <th className="px-6 py-4 font-bold">Team</th>
-                                    <th className="px-6 py-4 font-bold">Type</th>
+                                    <th className="px-6 py-4 font-bold">Ticket ID</th>
+                                    <th className="px-6 py-4 font-bold">Team / Date</th>
                                     <th className="px-6 py-4 font-bold">Participant</th>
-                                    <th className="px-6 py-4 font-bold">Role</th>
                                     <th className="px-6 py-4 font-bold">Contact</th>
+                                    <th className="px-6 py-4 font-bold">Location</th>
                                     <th className="px-6 py-4 font-bold text-right">Paid</th>
                                     <th className="px-6 py-4 font-bold">Status</th>
-                                    <th className="px-6 py-4 font-bold">Tx ID</th>
-                                    <th className="px-6 py-4 font-bold">Proof</th>
+                                    <th className="px-6 py-4 font-bold">Details</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-800">
@@ -161,28 +163,19 @@ export const AdminDashboard: FC = () => {
                                 ) : (
                                     filteredData.map((reg, idx) => (
                                         <tr key={idx} className="hover:bg-gray-800/50 transition-colors">
-                                            <td className="px-6 py-4 text-gray-500">
-                                                {new Date(reg.created_at).toLocaleDateString()}
+                                            <td className="px-6 py-4 font-mono text-cyber-neonBlue text-xs">
+                                                {reg.ticket_id || '-'}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="font-bold text-white">{reg.team_name}</div>
-                                                <div className="text-xs text-gray-500">Event ID: {reg.event_id}</div>
+                                                <div className="text-xs text-gray-500">{new Date(reg.created_at).toLocaleDateString()}</div>
+                                                <span className="text-[10px] bg-gray-700 px-1 rounded text-gray-300">{reg.team_type}</span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`px-2 py-0.5 rounded text-xs border ${reg.team_type === 'Solo' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
-                                                    reg.team_type === 'Duo' ? 'bg-purple-500/10 text-purple-400 border-purple-500/30' :
-                                                        'bg-orange-500/10 text-orange-400 border-orange-500/30'
-                                                    }`}>
-                                                    {reg.team_type}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-white">
-                                                {reg.participant_name}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`text-xs ${reg.role === 'Developer' ? 'text-cyan-400' :
+                                                <div className="text-white font-medium">{reg.participant_name}</div>
+                                                <span className={`text-[10px] uppercase font-bold ${reg.role === 'Developer' ? 'text-cyan-400' :
                                                     reg.role === 'Attacker' ? 'text-red-400' :
-                                                        'text-yellow-400 font-bold'
+                                                        'text-yellow-400'
                                                     }`}>
                                                     {reg.role}
                                                 </span>
@@ -190,6 +183,10 @@ export const AdminDashboard: FC = () => {
                                             <td className="px-6 py-4 text-gray-400">
                                                 <div className="text-gray-300">{reg.email}</div>
                                                 <div className="text-xs opacity-70">{reg.phone}</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-400 text-xs">
+                                                <div className="truncate max-w-[150px]" title={reg.college_or_work}>{reg.college_or_work || '-'}</div>
+                                                <div className="truncate max-w-[150px] opacity-70" title={reg.address}>{reg.address || '-'}</div>
                                             </td>
                                             <td className="px-6 py-4 text-right font-mono text-green-400 text-xs">
                                                 ₹{reg.amount_paid}
@@ -199,28 +196,27 @@ export const AdminDashboard: FC = () => {
                                                     {reg.payment_status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 font-mono text-xs text-gray-400">
-                                                {reg.transaction_id || '-'}
-                                            </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 text-xs space-y-1">
                                                 {reg.screenshot_path ? (
                                                     <a
                                                         href={reg.screenshot_path}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="text-cyber-neonBlue hover:underline text-xs"
+                                                        className="block text-cyber-neonBlue hover:underline"
                                                     >
                                                         View Proof
                                                     </a>
                                                 ) : (
-                                                    <span className="text-gray-600 text-xs">-</span>
+                                                    <span className="text-gray-600">-</span>
                                                 )}
+                                                <div className="text-gray-500 font-mono text-[10px]">{reg.transaction_id || ''}</div>
                                             </td>
                                         </tr>
                                     ))
                                 )}
                             </tbody>
                         </table>
+
                     </div>
                     <div className="bg-gray-800 px-6 py-3 border-t border-gray-700 text-xs text-center text-gray-500">
                         End of Registration Log
