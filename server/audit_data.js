@@ -34,7 +34,7 @@ const pool = new Pool({
         const adminQuery = `
             SELECT 
                 t.id as team_id, t.name as team_name, t.type as team_type, t.event_id, t.total_amount, t.created_at,
-                p.name as participant_name, p.email, p.phone, p.role, p.college_or_work, p.address, p.ticket_id, p.payment_status, p.amount_paid
+                p.name as participant_name, p.email, p.phone, p.role, p.college_or_work, p.address, p.registration_number, p.ticket_id, p.payment_status, p.amount_paid
             FROM teams t
             JOIN participants p ON t.id = p.team_id
             ORDER BY t.created_at DESC
