@@ -3,14 +3,14 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import pg from 'pg';
 import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
 import ExcelJS from 'exceljs';
 import multer from 'multer';
 import fs from 'fs';
 
+const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -45,48 +45,45 @@ const upload = multer({ storage: storage });
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Setup
-let db;
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
 
 (async () => {
     try {
-        db = await open({
-            filename: path.join(__dirname, '../database/database.sqlite'),
-            driver: sqlite3.Database
-        });
-
-        console.log('Connected to SQLite database.');
+        const client = await pool.connect();
+        console.log('Connected to PostgreSQL database.');
+        client.release();
 
         // Initialize Tables
-        // NOTE: We use DROP TABLE logic here for development to ensure schema changes apply. 
-        // In production, we would use migrations.
-        await db.exec(`
-            DROP TABLE IF EXISTS participants;
-            DROP TABLE IF EXISTS teams;
-
+        // NOTE: Removed DROP TABLE logic to ensure data persistence.
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS teams (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                event_id TEXT NOT NULL, -- Linked to specific event (e.g., '1')
+                id SERIAL PRIMARY KEY,
+                event_id TEXT NOT NULL, 
                 name TEXT,
-                type TEXT NOT NULL, -- 'Solo', 'Duo', 'Squad'
-                total_amount REAL NOT NULL, -- Total payment amount
-                transaction_id TEXT, -- Payment Transaction ID
-                screenshot_path TEXT, -- Path to payment screenshot
+                type TEXT NOT NULL, 
+                total_amount REAL NOT NULL, 
+                transaction_id TEXT, 
+                screenshot_path TEXT, 
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE TABLE IF NOT EXISTS participants (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                team_id INTEGER,
+                id SERIAL PRIMARY KEY,
+                team_id INTEGER REFERENCES teams(id),
                 name TEXT NOT NULL,
                 email TEXT NOT NULL,
                 phone TEXT,
-                role TEXT NOT NULL, -- 'Developer', 'Attacker', 'Both'
+                role TEXT NOT NULL, 
                 payment_status TEXT DEFAULT 'Pending',
-                amount_paid REAL, -- Individual share of the payment
-                FOREIGN KEY (team_id) REFERENCES teams(id)
+                amount_paid REAL
             );
         `);
-        console.log('Database tables verified/created with comprehensive schema.');
+        console.log('Database tables verified/created with PostgreSQL schema.');
     } catch (error) {
         console.error('Failed to connect to database:', error);
     }
@@ -130,6 +127,7 @@ const validateRegistration = (type, members) => {
 };
 
 app.post('/api/register', upload.single('screenshot'), async (req, res) => {
+    const client = await pool.connect();
     try {
         let { teamName, type, members, eventId } = req.body;
         const transactionId = req.body.transactionId;
@@ -144,7 +142,6 @@ app.post('/api/register', upload.single('screenshot'), async (req, res) => {
 
         const validationError = validateRegistration(type, members);
         if (validationError) {
-            // Clean up uploaded file if validation fails
             if (req.file) fs.unlinkSync(req.file.path);
             return res.status(400).json({ status: 'error', message: validationError });
         }
@@ -154,31 +151,27 @@ app.post('/api/register', upload.single('screenshot'), async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Payment details missing' });
         }
 
-        // Calculate expected price (server-side verification)
         const expectedPrice = calculatePrice(type, members);
 
-        // Transaction manually
-        await db.run('BEGIN TRANSACTION');
+        await client.query('BEGIN');
 
-        const result = await db.run(
-            'INSERT INTO teams (name, type, event_id, total_amount, transaction_id, screenshot_path) VALUES (?, ?, ?, ?, ?, ?)',
+        const teamResult = await client.query(
+            'INSERT INTO teams (name, type, event_id, total_amount, transaction_id, screenshot_path) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
             [teamName || `${members[0].name}'s Team`, type, eventId, expectedPrice, transactionId, screenshotPath]
         );
-        const teamId = result.lastID;
+        const teamId = teamResult.rows[0].id;
 
         for (const member of members) {
-            // Calculate individual share (simple division or exact role cost)
-            // Exact role cost is better
             let memberCost = 170;
             if (member.role === 'Both') memberCost *= 2;
 
-            await db.run(
-                'INSERT INTO participants (team_id, name, email, phone, role, payment_status, amount_paid) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            await client.query(
+                'INSERT INTO participants (team_id, name, email, phone, role, payment_status, amount_paid) VALUES ($1, $2, $3, $4, $5, $6, $7)',
                 [teamId, member.name, member.email, member.phone, member.role, 'Paid', memberCost]
             );
         }
 
-        await db.run('COMMIT');
+        await client.query('COMMIT');
 
         console.log(`Registered team: ${teamName} (${type}) for Event ${eventId}. Total: ₹${expectedPrice}. Tx: ${transactionId}`);
         res.json({
@@ -189,18 +182,19 @@ app.post('/api/register', upload.single('screenshot'), async (req, res) => {
         });
 
     } catch (error) {
-        if (req.file) fs.unlinkSync(req.file.path); // Clean up on error
-        await db.run('ROLLBACK');
+        if (req.file) fs.unlinkSync(req.file.path);
+        await client.query('ROLLBACK');
         console.error('Registration error:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
+    } finally {
+        client.release();
     }
 });
 
 
-// Existing Read-Only Routes (for backward compatibility if needed, though 'members' table might be gone)
+// Existing Read-Only Routes
 app.get('/api/members', async (req, res) => {
     try {
-        // Just empty for now as we switched DBs and schema
         res.json({ status: 'success', data: [] });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Internal server error' });
@@ -249,7 +243,7 @@ app.get('/api/admin/check-auth', authenticateAdmin, (req, res) => {
 // Get Registrations
 app.get('/api/admin/registrations', authenticateAdmin, async (req, res) => {
     try {
-        const rows = await db.all(`
+        const result = await pool.query(`
             SELECT 
                 t.id as team_id, t.name as team_name, t.type as team_type, t.event_id, t.total_amount, t.created_at,
                 p.name as participant_name, p.email, p.phone, p.role, p.payment_status, p.amount_paid
@@ -257,7 +251,7 @@ app.get('/api/admin/registrations', authenticateAdmin, async (req, res) => {
             JOIN participants p ON t.id = p.team_id
             ORDER BY t.created_at DESC
         `);
-        res.json({ status: 'success', data: rows });
+        res.json({ status: 'success', data: result.rows });
     } catch (error) {
         console.error('Fetch error:', error);
         res.status(500).json({ status: 'error', message: 'Database error' });
@@ -267,7 +261,7 @@ app.get('/api/admin/registrations', authenticateAdmin, async (req, res) => {
 // Export to Excel
 app.get('/api/admin/export', authenticateAdmin, async (req, res) => {
     try {
-        const rows = await db.all(`
+        const result = await pool.query(`
             SELECT 
                 t.id as team_id, t.name as team_name, t.type as team_type, t.event_id, t.total_amount, t.created_at, t.transaction_id, t.screenshot_path,
                 p.name as participant_name, p.email, p.phone, p.role, p.payment_status, p.amount_paid
@@ -295,7 +289,7 @@ app.get('/api/admin/export', authenticateAdmin, async (req, res) => {
             { header: 'Screenshot URL', key: 'screenshot_path', width: 50 },
         ];
 
-        rows.forEach(row => {
+        result.rows.forEach(row => {
             worksheet.addRow(row);
         });
 
