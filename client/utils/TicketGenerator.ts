@@ -9,6 +9,7 @@ interface TicketData {
     role: string;
     date: string;
     venue: string;
+    registrationNumber: string;
 }
 
 export const generateTicketPDF = async (data: TicketData) => {
@@ -71,45 +72,58 @@ export const generateTicketPDF = async (data: TicketData) => {
     // Row 2
     doc.setTextColor(200, 200, 200);
     doc.setFont('helvetica', 'normal');
-    doc.text('ROLE', leftX, y);
-    doc.text('TICKET ID', rightX, y);
+    doc.text('REGISTRATION NO.', leftX, y);
+    doc.text('ROLE', rightX, y);
     y += 8;
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 243, 255);
-    doc.text(data.role.toUpperCase(), leftX, y);
-    doc.text(data.ticketId, rightX, y);
+    doc.text(data.registrationNumber.toUpperCase(), leftX, y);
+    doc.text(data.role.toUpperCase(), rightX, y);
 
     y += 20;
 
-    // Row 3 (Date & Venue)
+    // Row 3
     doc.setTextColor(200, 200, 200);
     doc.setFont('helvetica', 'normal');
-    doc.text('DATE & TIME', leftX, y);
-    doc.text('VENUE', rightX, y);
+    doc.text('TICKET ID', leftX, y);
+    doc.text('DATE', rightX, y);
+    y += 8;
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 243, 255);
+    doc.text(data.ticketId, leftX, y);
+    doc.setTextColor(255, 255, 255);
+    doc.text(data.date, rightX, y);
+
+    y += 20;
+
+    // Row 4
+    doc.setTextColor(200, 200, 200);
+    doc.setFont('helvetica', 'normal');
+    doc.text('VENUE', leftX, y);
     y += 8;
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 255, 255);
-    doc.text(data.date, leftX, y);
-    doc.text(data.venue, rightX, y); // Long text might need wrapping in real app
+    doc.text(data.venue, leftX, y);
 
     // QR Code Section
-    y += 40;
+    y += 30;
     try {
         const qrData = JSON.stringify({
             id: data.ticketId,
+            regNo: data.registrationNumber,
             name: data.attendeeName,
             event: data.eventName,
             valid: true
         });
         const qrDataUrl = await QRCode.toDataURL(qrData);
-        doc.addImage(qrDataUrl, 'PNG', 75, y, 60, 60);
+        doc.addImage(qrDataUrl, 'PNG', 75, y, 50, 50);
     } catch (err) {
         console.error('QR Gen Error', err);
-        doc.rect(75, y, 60, 60); // Fallback box
-        doc.text('QR CODE', 105, y + 30, { align: 'center' });
+        doc.rect(75, y, 50, 50); // Fallback box
+        doc.text('QR CODE', 105, y + 25, { align: 'center' });
     }
 
-    y += 70;
+    y += 60;
     doc.setFontSize(10);
     doc.setTextColor(150, 150, 150);
     doc.text('Present this ticket at the entrance.', 105, y, { align: 'center' });

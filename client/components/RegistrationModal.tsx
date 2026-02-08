@@ -17,8 +17,7 @@ interface Member {
     name: string;
     email: string;
     phone: string;
-    college_or_work: string;
-    address: string;
+    registration_number: string;
 }
 
 export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose, eventName, eventId }) => {
@@ -48,8 +47,7 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
                 name: '',
                 email: '',
                 phone: '',
-                college_or_work: '',
-                address: ''
+                registration_number: ''
             });
             return newMembers;
         });
@@ -69,8 +67,7 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
             if (!member.name.trim()) { errors[`member_${idx}_name`] = 'Required'; isValid = false; }
             if (!member.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email)) { errors[`member_${idx}_email`] = 'Invalid Email'; isValid = false; }
             if (!member.phone.trim() || !/^\d{10}$/.test(member.phone)) { errors[`member_${idx}_phone`] = 'Invalid Phone (10 digits)'; isValid = false; }
-            if (!member.college_or_work.trim()) { errors[`member_${idx}_college`] = 'Required'; isValid = false; }
-            if (!member.address.trim()) { errors[`member_${idx}_address`] = 'Required'; isValid = false; }
+            if (!member.registration_number.trim()) { errors[`member_${idx}_reg`] = 'Required'; isValid = false; }
         });
 
         setValidationErrors(errors);
@@ -159,7 +156,8 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
             teamName,
             role: globalRole,
             date: new Date().toLocaleDateString(),
-            venue: 'Metaverse Club Arena'
+            venue: 'Metaverse Club Arena',
+            registrationNumber: member.registration_number || 'N/A'
         });
     };
 
@@ -301,7 +299,7 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
                                         <div className="flex justify-between items-center mb-3">
                                             <span className="text-sm font-bold text-gray-300">Member {idx + 1} {idx === 0 && '(Lead)'}</span>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
                                             {/* Name */}
                                             <div>
                                                 <input
@@ -313,17 +311,19 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
                                                 />
                                                 {validationErrors[`member_${idx}_name`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_name`]}</span>}
                                             </div>
-                                            {/* Email */}
+
+                                            {/* Registration ID */}
                                             <div>
                                                 <input
-                                                    type="email"
-                                                    placeholder="Email Address *"
-                                                    value={member.email}
-                                                    onChange={(e) => updateMember(idx, 'email', e.target.value)}
-                                                    className={`w-full bg-gray-950 border ${validationErrors[`member_${idx}_email`] ? 'border-red-500' : 'border-gray-700'} rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none`}
+                                                    type="text"
+                                                    placeholder="Registration ID / Roll No *"
+                                                    value={member.registration_number}
+                                                    onChange={(e) => updateMember(idx, 'registration_number', e.target.value)}
+                                                    className={`w-full bg-gray-950 border ${validationErrors[`member_${idx}_reg`] ? 'border-red-500' : 'border-gray-700'} rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none`}
                                                 />
-                                                {validationErrors[`member_${idx}_email`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_email`]}</span>}
+                                                {validationErrors[`member_${idx}_reg`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_reg`]}</span>}
                                             </div>
+
                                             {/* Phone */}
                                             <div>
                                                 <input
@@ -336,27 +336,17 @@ export const RegistrationModal: FC<RegistrationModalProps> = ({ isOpen, onClose,
                                                 />
                                                 {validationErrors[`member_${idx}_phone`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_phone`]}</span>}
                                             </div>
-                                            {/* College / Work */}
+
+                                            {/* Email */}
                                             <div>
                                                 <input
-                                                    type="text"
-                                                    placeholder="College / Company *"
-                                                    value={member.college_or_work}
-                                                    onChange={(e) => updateMember(idx, 'college_or_work', e.target.value)}
-                                                    className={`w-full bg-gray-950 border ${validationErrors[`member_${idx}_college`] ? 'border-red-500' : 'border-gray-700'} rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none`}
+                                                    type="email"
+                                                    placeholder="Email Address *"
+                                                    value={member.email}
+                                                    onChange={(e) => updateMember(idx, 'email', e.target.value)}
+                                                    className={`w-full bg-gray-950 border ${validationErrors[`member_${idx}_email`] ? 'border-red-500' : 'border-gray-700'} rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none`}
                                                 />
-                                                {validationErrors[`member_${idx}_college`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_college`]}</span>}
-                                            </div>
-                                            {/* Address */}
-                                            <div className="md:col-span-2">
-                                                <input
-                                                    type="text"
-                                                    placeholder="City / Address *"
-                                                    value={member.address}
-                                                    onChange={(e) => updateMember(idx, 'address', e.target.value)}
-                                                    className={`w-full bg-gray-950 border ${validationErrors[`member_${idx}_address`] ? 'border-red-500' : 'border-gray-700'} rounded p-2 text-white text-sm focus:border-cyber-neonBlue outline-none`}
-                                                />
-                                                {validationErrors[`member_${idx}_address`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_address`]}</span>}
+                                                {validationErrors[`member_${idx}_email`] && <span className="text-red-500 text-xs">{validationErrors[`member_${idx}_email`]}</span>}
                                             </div>
                                         </div>
                                     </div>

@@ -17,8 +17,7 @@ interface Registration {
     amount_paid: number;
     transaction_id?: string;
     screenshot_path?: string;
-    college_or_work?: string;
-    address?: string;
+    registration_number?: string;
     ticket_id?: string;
 }
 
@@ -64,7 +63,8 @@ export const AdminDashboard: FC = () => {
         r.team_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.participant_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.ticket_id?.toLowerCase().includes(searchTerm.toLowerCase())
+        r.ticket_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.registration_number?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -78,7 +78,7 @@ export const AdminDashboard: FC = () => {
                             ADMIN<span className="text-gray-500 mx-2">/</span>DASHBOARD
                         </h1>
                         <span className="bg-gray-800 text-xs px-2 py-1 rounded text-gray-400 border border-gray-700">
-                            v1.1
+                            v1.2
                         </span>
                     </div>
                     <div className="flex items-center gap-4">
@@ -138,7 +138,7 @@ export const AdminDashboard: FC = () => {
                                     <th className="px-6 py-4 font-bold">Team / Date</th>
                                     <th className="px-6 py-4 font-bold">Participant</th>
                                     <th className="px-6 py-4 font-bold">Contact</th>
-                                    <th className="px-6 py-4 font-bold">Location</th>
+                                    <th className="px-6 py-4 font-bold">Reg No</th>
                                     <th className="px-6 py-4 font-bold text-right">Paid</th>
                                     <th className="px-6 py-4 font-bold">Status</th>
                                     <th className="px-6 py-4 font-bold">Details</th>
@@ -184,9 +184,8 @@ export const AdminDashboard: FC = () => {
                                                 <div className="text-gray-300">{reg.email}</div>
                                                 <div className="text-xs opacity-70">{reg.phone}</div>
                                             </td>
-                                            <td className="px-6 py-4 text-gray-400 text-xs">
-                                                <div className="truncate max-w-[150px]" title={reg.college_or_work}>{reg.college_or_work || '-'}</div>
-                                                <div className="truncate max-w-[150px] opacity-70" title={reg.address}>{reg.address || '-'}</div>
+                                            <td className="px-6 py-4 text-white text-xs font-mono">
+                                                {reg.registration_number || '-'}
                                             </td>
                                             <td className="px-6 py-4 text-right font-mono text-green-400 text-xs">
                                                 ₹{reg.amount_paid}

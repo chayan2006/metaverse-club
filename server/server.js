@@ -82,6 +82,7 @@ const pool = new Pool({
                 college_or_work TEXT,
                 address TEXT,
                 ticket_id TEXT,
+                registration_number TEXT,
                 payment_status TEXT DEFAULT 'Pending',
                 amount_paid REAL
             );
@@ -92,6 +93,7 @@ const pool = new Pool({
             await pool.query(`ALTER TABLE participants ADD COLUMN IF NOT EXISTS college_or_work TEXT;`);
             await pool.query(`ALTER TABLE participants ADD COLUMN IF NOT EXISTS address TEXT;`);
             await pool.query(`ALTER TABLE participants ADD COLUMN IF NOT EXISTS ticket_id TEXT;`);
+            await pool.query(`ALTER TABLE participants ADD COLUMN IF NOT EXISTS registration_number TEXT;`);
         } catch (e) {
             console.log('Migration note: Columns might already exist or error in alter:', e.message);
         }
@@ -134,7 +136,7 @@ const validateRegistration = (type, members) => {
 
     for (const m of members) {
         if (!m.name || !m.email || !m.role) return 'Missing member details';
-        if (!m.college_or_work || !m.address) return 'Missing address/college details'; // Enforce new fields
+        if (!m.registration_number) return 'Missing Registration ID'; // Enforce new field
         if (!['Developer', 'Attacker', 'Both'].includes(m.role)) return 'Invalid role';
     }
     return null;
@@ -186,8 +188,8 @@ app.post('/api/register', upload.single('screenshot'), async (req, res) => {
             ticketIds.push(ticketId);
 
             await client.query(
-                'INSERT INTO participants (team_id, name, email, phone, role, college_or_work, address, ticket_id, payment_status, amount_paid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-                [teamId, member.name, member.email, member.phone, member.role, member.college_or_work, member.address, ticketId, 'Paid', memberCost]
+                'INSERT INTO participants (team_id, name, email, phone, role, college_or_work, address, ticket_id, registration_number, payment_status, amount_paid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+                [teamId, member.name, member.email, member.phone, member.role, null, null, ticketId, member.registration_number, 'Paid', memberCost]
             );
         }
 
@@ -267,7 +269,7 @@ app.get('/api/admin/registrations', authenticateAdmin, async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 t.id as team_id, t.name as team_name, t.type as team_type, t.event_id, t.total_amount, t.created_at,
-                p.name as participant_name, p.email, p.phone, p.role, p.college_or_work, p.address, p.ticket_id, p.payment_status, p.amount_paid
+                p.name as participant_name, p.email, p.phone, p.role, p.registration_number, p.ticket_id, p.payment_status, p.amount_paid
             FROM teams t
             JOIN participants p ON t.id = p.team_id
             ORDER BY t.created_at DESC
@@ -285,7 +287,7 @@ app.get('/api/admin/export', authenticateAdmin, async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 t.id as team_id, t.name as team_name, t.type as team_type, t.event_id, t.total_amount, t.created_at, t.transaction_id, t.screenshot_path,
-                p.name as participant_name, p.email, p.phone, p.role, p.college_or_work, p.address, p.ticket_id, p.payment_status, p.amount_paid
+                p.name as participant_name, p.email, p.phone, p.role, p.registration_number, p.ticket_id, p.payment_status, p.amount_paid
             FROM teams t
             JOIN participants p ON t.id = p.team_id
             ORDER BY t.created_at DESC
@@ -303,6 +305,8 @@ app.get('/api/admin/export', authenticateAdmin, async (req, res) => {
             { header: 'Email', key: 'email', width: 30 },
             { header: 'Phone', key: 'phone', width: 15 },
             { header: 'Role', key: 'role', width: 15 },
+            { header: 'Reg ID', key: 'registration_number', width: 20 },
+            { header: 'Ticket ID', key: 'ticket_id', width: 20 },
             { header: 'Payment Status', key: 'payment_status', width: 15 },
             { header: 'Amount Paid', key: 'amount_paid', width: 15 },
             { header: 'Team Total', key: 'total_amount', width: 15 },
