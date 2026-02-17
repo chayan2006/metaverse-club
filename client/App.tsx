@@ -130,12 +130,17 @@ const LandingPage: React.FC = () => {
   );
 }
 
+import { TeamsManagement } from './components/TeamsManagement';
+
+// ... (imports remain the same, adding TeamsManagement to routes)
+
 const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/admin" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route path="/admin/teams" element={<TeamsManagement />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

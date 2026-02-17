@@ -1,4 +1,5 @@
 
+import 'dotenv/config'; // Load environment variables
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -143,26 +144,39 @@ const validateRegistration = (type, members) => {
 };
 
 app.post('/api/register', upload.single('screenshot'), async (req, res) => {
+    console.log('📝 Received registration request');
     const client = await pool.connect();
+    console.log('🔌 Database client connected');
     try {
+        console.log('📦 Body:', req.body);
+        console.log('📁 File:', req.file);
+
         let { teamName, type, members, eventId } = req.body;
         const transactionId = req.body.transactionId;
         const screenshotPath = req.file ? `/uploads/${req.file.filename}` : null;
 
         // Parse members if it comes as a string (FormData sends JSON strings)
         if (typeof members === 'string') {
-            members = JSON.parse(members);
+            try {
+                members = JSON.parse(members);
+                console.log('Parsed members:', members);
+            } catch (e) {
+                console.error('Failed to parse members JSON:', e);
+                return res.status(400).json({ status: 'error', message: 'Invalid members JSON' });
+            }
         }
 
         if (!eventId) eventId = '1';
 
         const validationError = validateRegistration(type, members);
         if (validationError) {
+            console.error('Validation error:', validationError);
             if (req.file) fs.unlinkSync(req.file.path);
             return res.status(400).json({ status: 'error', message: validationError });
         }
 
         if (!transactionId || !screenshotPath) {
+            console.error('Missing payment details');
             if (req.file) fs.unlinkSync(req.file.path);
             return res.status(400).json({ status: 'error', message: 'Payment details missing' });
         }
@@ -263,12 +277,12 @@ app.get('/api/admin/check-auth', authenticateAdmin, (req, res) => {
     res.json({ status: 'success', authenticated: true });
 });
 
-// Get Registrations
+// Get Registrations (Original)
 app.get('/api/admin/registrations', authenticateAdmin, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
-                t.id as team_id, t.name as team_name, t.type as team_type, t.event_id, t.total_amount, t.created_at,
+                t.id as team_id, t.name as team_name, t.type as team_type, t.event_id, t.total_amount, t.created_at, t.transaction_id, t.screenshot_path,
                 p.name as participant_name, p.email, p.phone, p.role, p.registration_number, p.ticket_id, p.payment_status, p.amount_paid
             FROM teams t
             JOIN participants p ON t.id = p.team_id
@@ -278,6 +292,63 @@ app.get('/api/admin/registrations', authenticateAdmin, async (req, res) => {
     } catch (error) {
         console.error('Fetch error:', error);
         res.status(500).json({ status: 'error', message: 'Database error' });
+    }
+});
+
+// --- TEAMS MANAGEMENT API ---
+
+// GET /api/admin/teams - List all teams with details
+app.get('/api/admin/teams', authenticateAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT * FROM teams ORDER BY created_at DESC
+        `);
+        res.json({ status: 'success', data: result.rows });
+    } catch (error) {
+        console.error('Fetch teams error:', error);
+        res.status(500).json({ status: 'error', message: 'Database error' });
+    }
+});
+
+// PUT /api/admin/teams/:id - Update team details
+app.put('/api/admin/teams/:id', authenticateAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { name, type, total_amount, transaction_id } = req.body;
+
+    try {
+        await pool.query(
+            `UPDATE teams SET name = $1, type = $2, total_amount = $3, transaction_id = $4 WHERE id = $5`,
+            [name, type, total_amount, transaction_id, id]
+        );
+        res.json({ status: 'success', message: 'Team updated successfully' });
+    } catch (error) {
+        console.error('Update team error:', error);
+        res.status(500).json({ status: 'error', message: 'Database error' });
+    }
+});
+
+// DELETE /api/admin/teams/:id - Delete team (and cascade delete participants via FK or manual)
+app.delete('/api/admin/teams/:id', authenticateAdmin, async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // Delete participants first (if not cascading)
+        await client.query('DELETE FROM participants WHERE team_id = $1', [id]);
+
+        // Delete team
+        await client.query('DELETE FROM teams WHERE id = $1', [id]);
+
+        await client.query('COMMIT');
+        res.json({ status: 'success', message: 'Team deleted successfully' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Delete team error:', error);
+        res.status(500).json({ status: 'error', message: 'Database error' });
+    } finally {
+        client.release();
     }
 });
 

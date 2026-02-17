@@ -1,6 +1,6 @@
 import { useState, useEffect, FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Download, LogOut, Search, RefreshCw, AlertCircle, Database } from 'lucide-react';
+import { Download, LogOut, Search, RefreshCw, AlertCircle, Database, UserPlus } from 'lucide-react';
 
 interface Registration {
     team_id: number;
@@ -83,6 +83,13 @@ export const AdminDashboard: FC = () => {
                     </div>
                     <div className="flex items-center gap-4">
                         <button
+                            onClick={() => navigate('/admin/teams')}
+                            className="flex items-center gap-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white border border-blue-600/50 px-4 py-2 rounded transition-all text-sm font-bold"
+                        >
+                            <UserPlus size={16} /> {/* Using UserPlus or Users as icon */}
+                            Manage Teams
+                        </button>
+                        <button
                             onClick={handleExport}
                             className="flex items-center gap-2 bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white border border-green-600/50 px-4 py-2 rounded transition-all text-sm font-bold"
                         >
@@ -164,12 +171,17 @@ export const AdminDashboard: FC = () => {
                                     filteredData.map((reg, idx) => (
                                         <tr key={idx} className="hover:bg-gray-800/50 transition-colors">
                                             <td className="px-6 py-4 font-mono text-cyber-neonBlue text-xs">
-                                                {reg.ticket_id || '-'}
+                                                <div>{reg.ticket_id || '-'}</div>
+                                                <div className="text-[10px] text-gray-500 mt-1">Team ID: {reg.team_id}</div>
+                                                <div className="text-[10px] text-gray-600">Event ID: {reg.event_id}</div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="font-bold text-white">{reg.team_name}</div>
-                                                <div className="text-xs text-gray-500">{new Date(reg.created_at).toLocaleDateString()}</div>
-                                                <span className="text-[10px] bg-gray-700 px-1 rounded text-gray-300">{reg.team_type}</span>
+                                                <div className="text-xs text-gray-500">{new Date(reg.created_at).toLocaleDateString()} {new Date(reg.created_at).toLocaleTimeString()}</div>
+                                                <div className="flex gap-1 mt-1">
+                                                    <span className="text-[10px] bg-gray-700 px-1 rounded text-gray-300">{reg.team_type}</span>
+                                                    <span className="text-[10px] bg-gray-800 border border-gray-600 px-1 rounded text-green-400">Total: ₹{reg.total_amount}</span>
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-white font-medium">{reg.participant_name}</div>
@@ -188,7 +200,8 @@ export const AdminDashboard: FC = () => {
                                                 {reg.registration_number || '-'}
                                             </td>
                                             <td className="px-6 py-4 text-right font-mono text-green-400 text-xs">
-                                                ₹{reg.amount_paid}
+                                                <div>₹{reg.amount_paid}</div>
+                                                <div className="text-[10px] text-gray-500 mt-0.5 whitespace-nowrap">(Team: ₹{reg.total_amount})</div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-900/30 text-green-500 border border-green-500/30">
