@@ -50,11 +50,13 @@ const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
         rejectUnauthorized: false
-    }
+    },
+    connectionTimeoutMillis: 30000, // Wait 30s for Render cold start
 });
 
 (async () => {
     try {
+        console.log('Attempting to connect to PostgreSQL...');
         const client = await pool.connect();
         console.log('Connected to PostgreSQL database.');
         client.release();
@@ -299,10 +301,12 @@ app.get('/api/admin/registrations', authenticateAdmin, async (req, res) => {
 
 // GET /api/admin/teams - List all teams with details
 app.get('/api/admin/teams', authenticateAdmin, async (req, res) => {
+    console.log('API: fetching teams...');
     try {
         const result = await pool.query(`
             SELECT * FROM teams ORDER BY created_at DESC
         `);
+        console.log(`API: fetched ${result.rows.length} teams.`);
         res.json({ status: 'success', data: result.rows });
     } catch (error) {
         console.error('Fetch teams error:', error);
