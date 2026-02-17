@@ -5,6 +5,10 @@
             "destination": "https://metaverse-club.onrender.com/api/:path*"
         },
         {
+            "source": "/uploads/:path*",
+            "destination": "https://metaverse-club.onrender.com/uploads/:path*"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }

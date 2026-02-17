@@ -223,7 +223,7 @@ export const TeamsManagement: FC = () => {
                                                 <div className="flex flex-col gap-1">
                                                     {team.screenshot_path ? (
                                                         <a
-                                                            href={`http://localhost:3000${team.screenshot_path}`}
+                                                            href={team.screenshot_path}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="text-cyber-neonBlue hover:underline"
