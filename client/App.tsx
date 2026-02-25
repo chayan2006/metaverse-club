@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Hero } from './components/Hero';
 import { About } from './components/About';
-import { Events } from './components/Events';
 import { Updates } from './components/Updates';
 import { Team } from './components/Team';
 import { JoinForm } from './components/JoinForm';
@@ -9,7 +8,6 @@ import { Footer } from './components/Footer';
 import { Navbar } from './components/Navbar';
 import { Background3D } from './components/Background3D';
 import { Tesseract, FloatingCrystal, GyroScope } from './components/Shapes3D';
-import { EventsBackground3D } from './components/EventsBackground3D';
 import { Zap } from 'lucide-react';
 import { HelpButton } from './components/HelpButton';
 
@@ -24,7 +22,7 @@ const LandingPage: React.FC = () => {
   // Simple scroll spy to update active section
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ['home', 'about', 'events', 'updates', 'team', 'join'];
+      const sections = ['home', 'about', 'updates', 'team', 'join'];
       const scrollPosition = window.scrollY + 100;
 
       for (const section of sections) {
@@ -72,18 +70,6 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="events" className="py-20 px-4 md:px-8 relative overflow-hidden">
-          {/* Interactive 3D Background for Events */}
-          <EventsBackground3D />
-
-          {/* 3D Decor for Events: GyroScope */}
-          <div className="absolute bottom-10 left-[-50px] md:left-20 z-0 scale-75 md:scale-100">
-            <GyroScope />
-          </div>
-          <div className="relative z-10">
-            <Events />
-          </div>
-        </section>
 
         <section id="updates" className="py-20 px-4 md:px-8 bg-cyber-dark/30 border-y border-cyber-panel relative">
           {/* 3D Decor for Updates: Subtle floating crystal in distance? */}

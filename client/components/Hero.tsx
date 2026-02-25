@@ -30,14 +30,6 @@ export const Hero: React.FC = () => {
               Join The Club <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </span>
           </a>
-          <a
-            href="#events"
-            className="group relative px-8 py-3 bg-transparent border border-cyber-neonPurple text-cyber-neonPurple font-bold uppercase tracking-wider skew-x-[-10deg] hover:bg-cyber-neonPurple hover:text-white transition-all duration-300"
-          >
-            <span className="block skew-x-[10deg]">
-              View Events
-            </span>
-          </a>
         </div>
       </div>
 

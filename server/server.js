@@ -12,6 +12,7 @@ import multer from 'multer';
 import fs from 'fs';
 
 const { Pool } = pg;
+import { sendRegistrationEmail, sendJoinEmail } from './utils/emailService.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -212,6 +213,16 @@ app.post('/api/register', upload.single('screenshot'), async (req, res) => {
         await client.query('COMMIT');
 
         console.log(`Registered team: ${teamName} (${type}). Total: ₹${expectedPrice}. Tickets: ${ticketIds.join(', ')}`);
+        // Send Email Notification
+        if (screenshotPath) {
+            const memberNames = members.map(m => m.name);
+            for (const member of members) {
+                if (member.email) {
+                    await sendRegistrationEmail(member.email, teamName || `${members[0].name}'s Team`, memberNames, eventId).catch(console.error);
+                }
+            }
+        }
+
         res.json({
             status: 'success',
             message: 'Registration successful',
